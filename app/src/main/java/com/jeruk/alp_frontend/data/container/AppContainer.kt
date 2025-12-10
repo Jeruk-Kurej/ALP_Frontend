@@ -2,15 +2,21 @@ package com.jeruk.alp_frontend.data.container
 
 import com.google.gson.GsonBuilder
 import com.jeruk.alp_frontend.data.repository.AuthRepository
+import com.jeruk.alp_frontend.data.repository.TokoRepository // Import ini
 import com.jeruk.alp_frontend.data.service.AuthService
+import com.jeruk.alp_frontend.data.service.TokoService // Import ini
 import retrofit2.Retrofit
 import retrofit2.converter.gson.GsonConverterFactory
 
 class AppContainer {
 
     companion object {
-        // Jangan pakai "localhost", tapi pakai "10.0.2.2"
-        private const val BASE_URL = "http://10.152.62.164:3000/api/"
+        // Ganti X dengan IP Laptop kamu
+        // ROOT_URL buat Gambar (tanpa /api/)
+        private const val ROOT_URL = "http://192.168.1.5:3000"
+
+        // BASE_URL buat Retrofit (pakai /api/)
+        private const val BASE_URL = "$ROOT_URL/api/"
     }
 
     private val retrofit = Retrofit.Builder()
@@ -18,13 +24,21 @@ class AppContainer {
         .addConverterFactory(GsonConverterFactory.create(GsonBuilder().create()))
         .build()
 
-    // Membuat Service dari Retrofit
+    // --- AUTH ---
     private val authService: AuthService by lazy {
         retrofit.create(AuthService::class.java)
     }
-
-    // Membuat Repository dengan memasukkan Service ke dalamnya
     val authRepository: AuthRepository by lazy {
         AuthRepository(authService)
+    }
+
+    // --- TOKO ---
+    private val tokoService: TokoService by lazy {
+        retrofit.create(TokoService::class.java)
+    }
+
+    // DI SINI KITA MASUKKAN URL KE REPOSITORY
+    val tokoRepository: TokoRepository by lazy {
+        TokoRepository(tokoService, ROOT_URL)
     }
 }
