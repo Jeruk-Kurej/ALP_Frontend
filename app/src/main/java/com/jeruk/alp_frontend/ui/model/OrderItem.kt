@@ -8,4 +8,3 @@ data class OrderItem(
     val productImageUrl: String,
     val orderAmount: Int
 )
-
