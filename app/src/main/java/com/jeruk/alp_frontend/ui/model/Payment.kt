@@ -1,4 +1,6 @@
 package com.jeruk.alp_frontend.ui.model
 
-class Payment {
-}
+data class Payment(
+    val id: Int,
+    val name: String
+)

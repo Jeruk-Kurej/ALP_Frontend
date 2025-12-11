@@ -5,10 +5,14 @@ import com.jeruk.alp_frontend.data.repository.AuthRepository
 import com.jeruk.alp_frontend.data.repository.TokoRepository
 import com.jeruk.alp_frontend.data.repository.ProductRepository
 import com.jeruk.alp_frontend.data.repository.CategoryRepository
+import com.jeruk.alp_frontend.data.repository.PaymentRepository
+import com.jeruk.alp_frontend.data.repository.OrderRepository
 import com.jeruk.alp_frontend.data.service.AuthService
 import com.jeruk.alp_frontend.data.service.TokoService
 import com.jeruk.alp_frontend.data.service.ProductService
 import com.jeruk.alp_frontend.data.service.CategoryService
+import com.jeruk.alp_frontend.data.service.PaymentService
+import com.jeruk.alp_frontend.data.service.OrderService
 import retrofit2.Retrofit
 import retrofit2.converter.gson.GsonConverterFactory
 
@@ -58,5 +62,21 @@ class AppContainer {
     }
     val categoryRepository: CategoryRepository by lazy {
         CategoryRepository(categoryService)
+    }
+
+    // --- PAYMENT ---
+    private val paymentService: PaymentService by lazy {
+        retrofit.create(PaymentService::class.java)
+    }
+    val paymentRepository: PaymentRepository by lazy {
+        PaymentRepository(paymentService)
+    }
+
+    // --- ORDER ---
+    private val orderService: OrderService by lazy {
+        retrofit.create(OrderService::class.java)
+    }
+    val orderRepository: OrderRepository by lazy {
+        OrderRepository(orderService, ROOT_URL)
     }
 }
