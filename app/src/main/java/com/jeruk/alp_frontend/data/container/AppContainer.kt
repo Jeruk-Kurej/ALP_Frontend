@@ -2,9 +2,13 @@ package com.jeruk.alp_frontend.data.container
 
 import com.google.gson.GsonBuilder
 import com.jeruk.alp_frontend.data.repository.AuthRepository
-import com.jeruk.alp_frontend.data.repository.TokoRepository // Import ini
+import com.jeruk.alp_frontend.data.repository.TokoRepository
+import com.jeruk.alp_frontend.data.repository.ProductRepository
+import com.jeruk.alp_frontend.data.repository.CategoryRepository
 import com.jeruk.alp_frontend.data.service.AuthService
-import com.jeruk.alp_frontend.data.service.TokoService // Import ini
+import com.jeruk.alp_frontend.data.service.TokoService
+import com.jeruk.alp_frontend.data.service.ProductService
+import com.jeruk.alp_frontend.data.service.CategoryService
 import retrofit2.Retrofit
 import retrofit2.converter.gson.GsonConverterFactory
 
@@ -36,9 +40,23 @@ class AppContainer {
     private val tokoService: TokoService by lazy {
         retrofit.create(TokoService::class.java)
     }
-
-    // DI SINI KITA MASUKKAN URL KE REPOSITORY
     val tokoRepository: TokoRepository by lazy {
         TokoRepository(tokoService, ROOT_URL)
+    }
+
+    // --- PRODUCT ---
+    private val productService: ProductService by lazy {
+        retrofit.create(ProductService::class.java)
+    }
+    val productRepository: ProductRepository by lazy {
+        ProductRepository(productService, ROOT_URL)
+    }
+
+    // --- CATEGORY ---
+    private val categoryService: CategoryService by lazy {
+        retrofit.create(CategoryService::class.java)
+    }
+    val categoryRepository: CategoryRepository by lazy {
+        CategoryRepository(categoryService)
     }
 }
