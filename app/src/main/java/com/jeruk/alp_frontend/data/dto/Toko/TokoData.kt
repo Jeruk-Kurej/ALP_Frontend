@@ -1,6 +1,6 @@
 package com.jeruk.alp_frontend.data.dto.Toko
 
-data class Data(
+data class TokoData(
     val description: String,
     val id: Int,
     val image: Any,
@@ -9,3 +9,4 @@ data class Data(
     val name: String,
     val owner: Owner
 )
+

@@ -1,5 +1,6 @@
 package com.jeruk.alp_frontend.data.dto.Auth
 
-data class DataX(
+data class AuthData(
     val token: String
 )
+

@@ -71,8 +71,8 @@ class CategoryRepository(
         val response = service.deleteCategory("Bearer $token", categoryId)
 
         if (response.isSuccessful) {
-            val deletedCategory = response.body()?.data
-            return "Category '${deletedCategory?.name}' deleted successfully"
+            val message = response.body()?.message ?: "Category deleted successfully"
+            return message
         } else {
             throw Exception("Failed to delete category: ${response.code()}")
         }

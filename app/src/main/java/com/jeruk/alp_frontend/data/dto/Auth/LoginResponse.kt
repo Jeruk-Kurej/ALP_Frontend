@@ -1,5 +1,5 @@
 package com.jeruk.alp_frontend.data.dto.Auth
 
 data class LoginResponse(
-    val `data`: DataX
+    val `data`: AuthData
 )

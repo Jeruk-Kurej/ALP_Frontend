@@ -2,6 +2,6 @@ package com.jeruk.alp_frontend.data.dto.Product
 
 data class GetProductById(
     val code: Int,
-    val `data`: DataX,
+    val `data`: ProductData,
     val status: String
 )
