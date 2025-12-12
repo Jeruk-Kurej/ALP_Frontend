@@ -22,12 +22,9 @@ class TokoRepository(
                 Toko(
                     id = item.id,
                     name = item.name,
-                    description = item.description ?: "",
-                    address = item.location ?: "",
-
-                    // Logic gabungin URL jadi dinamis sesuai inputan Container
-                    imageUrl = if (item.image != null) "$baseUrl${item.image}" else "",
-
+                    description = item.description,
+                    address = item.location,
+                    imageUrl = "$baseUrl${item.image}",
                     isOpen = item.is_open
                 )
             }
@@ -36,6 +33,62 @@ class TokoRepository(
         }
     }
 
-    // ... Function getTokoById dan createToko sama logicnya ...
-    // ... Tinggal hapus hardcode URL saja ...
+    suspend fun getTokoById(tokoId: Int): Toko {
+        val response = service.getTokoById(tokoId)
+
+        if (response.isSuccessful) {
+            val body = response.body()!!
+            val item = body.data
+            return Toko(
+                id = item.id,
+                name = item.name,
+                description = item.description,
+                address = item.location,
+                imageUrl = "$baseUrl${item.image}",
+                isOpen = item.is_open
+            )
+        } else {
+            throw Exception("Gagal mengambil data toko: ${response.code()}")
+        }
+    }
+
+    suspend fun createToko(
+        token: String,
+        name: String,
+        description: String,
+        location: String,
+        imageFile: File?
+    ): Toko {
+        val namePart = name.toRequestBody("text/plain".toMediaTypeOrNull())
+        val descriptionPart = description.toRequestBody("text/plain".toMediaTypeOrNull())
+        val locationPart = location.toRequestBody("text/plain".toMediaTypeOrNull())
+
+        val imagePart = imageFile?.let {
+            val requestBody = it.asRequestBody("image/*".toMediaTypeOrNull())
+            MultipartBody.Part.createFormData("image", it.name, requestBody)
+        }
+
+        val response = service.createToko(
+            token = "Bearer $token",
+            name = namePart,
+            description = descriptionPart,
+            location = locationPart,
+            image = imagePart
+        )
+
+        if (response.isSuccessful) {
+            val body = response.body()!!
+            val item = body.data
+            return Toko(
+                id = item.id,
+                name = item.name,
+                description = item.description,
+                address = item.location,
+                imageUrl = "$baseUrl${item.image}",
+                isOpen = item.is_open
+            )
+        } else {
+            throw Exception("Gagal membuat toko: ${response.code()}")
+        }
+    }
 }
