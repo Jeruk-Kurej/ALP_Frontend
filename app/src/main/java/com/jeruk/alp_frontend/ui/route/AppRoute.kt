@@ -2,6 +2,7 @@ package com.jeruk.alp_frontend.ui.route
 
 import androidx.compose.foundation.layout.padding
 import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material.icons.filled.Settings
 import androidx.compose.material.icons.filled.Storefront
 import androidx.compose.material.icons.outlined.Settings
@@ -13,6 +14,9 @@ import androidx.compose.runtime.getValue
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.vector.ImageVector
+import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.unit.dp
+import androidx.compose.ui.unit.sp
 import androidx.lifecycle.viewmodel.compose.viewModel
 import androidx.navigation.NavDestination
 import androidx.navigation.NavDestination.Companion.hierarchy
@@ -49,29 +53,65 @@ fun AppRoute() {
     val navController = rememberNavController()
     val authViewModel: AuthViewModel = viewModel()
     val navBackStackEntry by navController.currentBackStackEntryAsState()
-    val currentDestination = navBackStackEntry?.destination
-    val currentRoute = currentDestination?.route
+    val currentRoute = navBackStackEntry?.destination?.route
     val currentView = AppView.entries.find { it.name == currentRoute } ?: AppView.Welcoming
 
     Scaffold(
         topBar = {
-            // TopBar hanya muncul di halaman tertentu (bukan Welcoming, Login, Register, Home)
-            if (currentView != AppView.Welcoming &&
-                currentView != AppView.Home &&
-                currentView != AppView.Login &&
-                currentView != AppView.Register) {
-                MyTopAppBar(currentView = currentView, authViewModel = authViewModel)
+            // TopBar muncul di Toko (image_167a80) dan Register (image_3054c6)
+            if (currentView == AppView.Home || currentView == AppView.Register) {
+                CenterAlignedTopAppBar(
+                    title = {
+                        Text(
+                            text = if(currentView == AppView.Home) "Pilih Toko" else "Daftar Akun",
+                            fontSize = 18.sp,
+                            fontWeight = FontWeight.Bold,
+                            color = Color(0xFF1F2937)
+                        )
+                    },
+                    navigationIcon = {
+                        if (currentView == AppView.Register) {
+                            IconButton(onClick = { navController.popBackStack() }) {
+                                Icon(Icons.AutoMirrored.Filled.ArrowBack, "Back")
+                            }
+                        }
+                    },
+                    colors = TopAppBarDefaults.centerAlignedTopAppBarColors(containerColor = Color.White)
+                )
             }
         },
         bottomBar = {
-            MyBottomNavigationBar(
-                navController = navController,
-                currentDestination = currentDestination,
-                items = listOf(
-                    BottomNavItem(AppView.Home, "Toko"),
-                    BottomNavItem(AppView.Setting, "Setting")
-                )
-            )
+            // BottomBar hanya muncul di Home/Setting
+            if (currentView == AppView.Home || currentView == AppView.Setting) {
+                NavigationBar(
+                    containerColor = Color.White,
+                    tonalElevation = 8.dp
+                ) {
+                    val items = listOf(
+                        BottomNavItem(AppView.Home, "Toko"),
+                        BottomNavItem(AppView.Setting, "Setting")
+                    )
+                    items.forEach { item ->
+                        val isSelected = currentRoute == item.view.name
+                        NavigationBarItem(
+                            selected = isSelected,
+                            onClick = { navController.navigate(item.view.name) },
+                            label = { Text(item.label, fontSize = 12.sp) },
+                            icon = {
+                                Icon(
+                                    imageVector = if (isSelected) item.view.selectedIcon!! else item.view.unselectedIcon!!,
+                                    contentDescription = null
+                                )
+                            },
+                            colors = NavigationBarItemDefaults.colors(
+                                selectedIconColor = Color(0xFF9333EA),
+                                indicatorColor = Color(0xFFF3E8FF),
+                                unselectedIconColor = Color.Gray
+                            )
+                        )
+                    }
+                }
+            }
         }
     ) { innerPadding ->
         NavHost(
@@ -79,46 +119,21 @@ fun AppRoute() {
             startDestination = AppView.Welcoming.name,
             modifier = Modifier.padding(innerPadding)
         ) {
-            // --- HALAMAN WELCOMING ---
-            composable(AppView.Welcoming.name) {
-                WelcomingView { navController.navigate(AppView.Login.name) }
-            }
-
-            // --- HALAMAN LOGIN ---
+            composable(AppView.Welcoming.name) { WelcomingView { navController.navigate(AppView.Login.name) } }
             composable(AppView.Login.name) {
                 LoginView(
-                    onLoginSuccess = {
-                        navController.navigate(AppView.Home.name) {
-                            popUpTo(AppView.Welcoming.name) { inclusive = true }
-                        }
-                    },
+                    onLoginSuccess = { navController.navigate(AppView.Home.name) },
                     onNavigateToRegister = { navController.navigate(AppView.Register.name) }
                 )
             }
-
-            // --- HALAMAN REGISTER (Tadi ini hilang, makanya mungkin error) ---
             composable(AppView.Register.name) {
                 RegisterView(
-                    authViewModel = authViewModel,
-                    onRegisterSuccess = {
-                        navController.navigate(AppView.Home.name) {
-                            popUpTo(AppView.Welcoming.name) { inclusive = true }
-                        }
-                    },
+                    onRegisterSuccess = { navController.navigate(AppView.Home.name) },
                     onNavigateToLogin = { navController.popBackStack() }
                 )
             }
-
-            // --- HALAMAN HOME (TOKO) ---
             composable(AppView.Home.name) {
-                val userState by authViewModel.userState.collectAsState()
-                TokoView(token = userState.token, navController = navController)
-            }
-
-            // --- HALAMAN SETTING ---
-            composable(AppView.Setting.name) {
-                // Kamu bisa buat SettingView.kt nanti, sementara pakai Text dulu
-                Text("Halaman Setting", modifier = Modifier.padding(innerPadding))
+                TokoView(token = "TOKEN_HERE", navController = navController)
             }
         }
     }

@@ -8,7 +8,7 @@ import retrofit2.converter.gson.GsonConverterFactory
 
 class AppContainer {
     companion object {
-        private const val ROOT_URL = "http://192.168.1.64:3000"
+        private const val ROOT_URL = "http://10.152.62.164:3000"
         private const val BASE_URL = "$ROOT_URL/api/"
     }
 
