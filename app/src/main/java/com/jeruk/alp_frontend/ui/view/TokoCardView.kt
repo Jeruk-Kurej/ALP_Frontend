@@ -18,7 +18,6 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.jeruk.alp_frontend.ui.model.Toko
 
-@OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun TokoCardView(
     toko: Toko,

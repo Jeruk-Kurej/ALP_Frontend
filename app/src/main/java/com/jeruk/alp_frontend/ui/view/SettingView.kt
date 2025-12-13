@@ -23,8 +23,8 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.navigation.NavController
+import com.jeruk.alp_frontend.ui.route.AppView
 
-@OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun SettingView(
     navController: NavController,
@@ -75,15 +75,19 @@ fun SettingView(
     }
 
     // --- DIALOGS ---
+    // Di dalam SettingView.kt
     if (showAdminDialog) {
         Dialog(onDismissRequest = { showAdminDialog = false }) {
-            // Masukkan kedua parameter: onDismiss DAN onAdminAuthenticated
             AdminFormView(
                 onDismiss = { showAdminDialog = false },
                 onAdminAuthenticated = {
                     showAdminDialog = false
-                    // Tambahkan navigasi ke halaman Admin kamu di sini jika sudah ada
-                    // navController.navigate("AdminDashboard")
+                    // PINDAH KE HALAMAN ANALITIK
+                    // Gunakan AppView.Analysis.name sesuai enum kamu
+                    navController.navigate(AppView.Analysis.name) {
+                        // Agar saat di halaman admin, tombol 'back' tidak balik ke form password
+                        popUpTo(AppView.Setting.name) { inclusive = true }
+                    }
                 }
             )
         }
