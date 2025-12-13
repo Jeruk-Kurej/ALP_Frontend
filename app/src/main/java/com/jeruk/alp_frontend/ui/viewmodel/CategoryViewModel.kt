@@ -1,31 +1,32 @@
 package com.jeruk.alp_frontend.ui.viewmodel
 
-import androidx.lifecycle.LiveData
-import androidx.lifecycle.MutableLiveData
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
-import com.jeruk.alp_frontend.data.repository.CategoryRepository
+import com.jeruk.alp_frontend.data.container.AppContainer
 import com.jeruk.alp_frontend.ui.model.Category
+import kotlinx.coroutines.flow.MutableStateFlow
+import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.launch
 
-class CategoryViewModel(
-    private val repository: CategoryRepository
-) : ViewModel() {
+class CategoryViewModel : ViewModel() { // <-- Constructor kosong sesuai style Bryan
 
-    private val _categories = MutableLiveData<List<Category>>()
-    val categories: LiveData<List<Category>> = _categories
+    // Inisialisasi repository langsung dari Container
+    private val repository = AppContainer().categoryRepository
 
-    private val _selectedCategory = MutableLiveData<Category>()
-    val selectedCategory: LiveData<Category> = _selectedCategory
+    private val _categories = MutableStateFlow<List<Category>>(emptyList())
+    val categories: StateFlow<List<Category>> = _categories
 
-    private val _isLoading = MutableLiveData<Boolean>()
-    val isLoading: LiveData<Boolean> = _isLoading
+    private val _selectedCategory = MutableStateFlow<Category?>(null)
+    val selectedCategory: StateFlow<Category?> = _selectedCategory
 
-    private val _errorMessage = MutableLiveData<String?>()
-    val errorMessage: LiveData<String?> = _errorMessage
+    private val _isLoading = MutableStateFlow(false)
+    val isLoading: StateFlow<Boolean> = _isLoading
 
-    private val _successMessage = MutableLiveData<String?>()
-    val successMessage: LiveData<String?> = _successMessage
+    private val _errorMessage = MutableStateFlow<String?>(null)
+    val errorMessage: StateFlow<String?> = _errorMessage
+
+    private val _successMessage = MutableStateFlow<String?>(null)
+    val successMessage: StateFlow<String?> = _successMessage
 
     fun getAllCategories() {
         viewModelScope.launch {
@@ -35,7 +36,7 @@ class CategoryViewModel(
                 val result = repository.getAllCategories()
                 _categories.value = result
             } catch (e: Exception) {
-                _errorMessage.value = e.message
+                _errorMessage.value = e.message ?: "Gagal memuat kategori"
             } finally {
                 _isLoading.value = false
             }
@@ -65,7 +66,7 @@ class CategoryViewModel(
                 val result = repository.createCategory(token, name)
                 _selectedCategory.value = result
                 _successMessage.value = "Category created successfully"
-                getAllCategories() // Refresh the list
+                getAllCategories() // Refresh list otomatis
             } catch (e: Exception) {
                 _errorMessage.value = e.message
             } finally {
@@ -82,7 +83,7 @@ class CategoryViewModel(
                 val result = repository.updateCategory(token, categoryId, name)
                 _selectedCategory.value = result
                 _successMessage.value = "Category updated successfully"
-                getAllCategories() // Refresh the list
+                getAllCategories() // Refresh list otomatis
             } catch (e: Exception) {
                 _errorMessage.value = e.message
             } finally {
@@ -98,7 +99,7 @@ class CategoryViewModel(
             try {
                 val message = repository.deleteCategory(token, categoryId)
                 _successMessage.value = message
-                getAllCategories() // Refresh the list
+                getAllCategories() // Refresh list otomatis
             } catch (e: Exception) {
                 _errorMessage.value = e.message
             } finally {

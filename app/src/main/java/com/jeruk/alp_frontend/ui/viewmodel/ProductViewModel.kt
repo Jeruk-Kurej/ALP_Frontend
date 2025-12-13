@@ -1,32 +1,33 @@
 package com.jeruk.alp_frontend.ui.viewmodel
 
-import androidx.lifecycle.LiveData
-import androidx.lifecycle.MutableLiveData
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
-import com.jeruk.alp_frontend.data.repository.ProductRepository
+import com.jeruk.alp_frontend.data.container.AppContainer
 import com.jeruk.alp_frontend.ui.model.Product
+import kotlinx.coroutines.flow.MutableStateFlow
+import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.launch
 import java.io.File
 
-class ProductViewModel(
-    private val repository: ProductRepository
-) : ViewModel() {
+class ProductViewModel : ViewModel() { // <-- Constructor kosong
 
-    private val _products = MutableLiveData<List<Product>>()
-    val products: LiveData<List<Product>> = _products
+    // Inisialisasi repository langsung dari Container sesuai style kamu
+    private val repository = AppContainer().productRepository
 
-    private val _selectedProduct = MutableLiveData<Product>()
-    val selectedProduct: LiveData<Product> = _selectedProduct
+    private val _products = MutableStateFlow<List<Product>>(emptyList())
+    val products: StateFlow<List<Product>> = _products
 
-    private val _isLoading = MutableLiveData<Boolean>()
-    val isLoading: LiveData<Boolean> = _isLoading
+    private val _selectedProduct = MutableStateFlow<Product?>(null)
+    val selectedProduct: StateFlow<Product?> = _selectedProduct
 
-    private val _errorMessage = MutableLiveData<String?>()
-    val errorMessage: LiveData<String?> = _errorMessage
+    private val _isLoading = MutableStateFlow(false)
+    val isLoading: StateFlow<Boolean> = _isLoading
 
-    private val _successMessage = MutableLiveData<String?>()
-    val successMessage: LiveData<String?> = _successMessage
+    private val _errorMessage = MutableStateFlow<String?>(null)
+    val errorMessage: StateFlow<String?> = _errorMessage
+
+    private val _successMessage = MutableStateFlow<String?>(null)
+    val successMessage: StateFlow<String?> = _successMessage
 
     fun getAllProducts() {
         viewModelScope.launch {
