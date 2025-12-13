@@ -21,7 +21,7 @@ class AppContainer {
     companion object {
         // IP 10.0.2.2 digunakan untuk koneksi dari Emulator Android ke server di komputer host
         // ROOT_URL buat Gambar (tanpa /api/)
-        private const val ROOT_URL = "http://10.0.2.2:3000"
+        private const val ROOT_URL = "http://192.168.1.64:3000"
 
         // BASE_URL buat Retrofit (pakai /api/)
         private const val BASE_URL = "$ROOT_URL/api/"

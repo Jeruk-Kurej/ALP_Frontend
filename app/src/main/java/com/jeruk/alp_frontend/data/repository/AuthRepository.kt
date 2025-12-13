@@ -32,11 +32,8 @@ class AuthRepository(private val service: AuthService) {
         }
     }
 
-    suspend fun loginUser(email: String, pass: String): User {
-        // 1. Siapkan Request DTO
-        val request = LoginRequest(email = email, password = pass)
-
-        // 2. Panggil Service
+    suspend fun loginUser(username: String, pass: String): User {
+        val request = LoginRequest(username = username, password = pass)
         val response = service.loginUser(request)
 
         if (response.isSuccessful) {
@@ -45,7 +42,7 @@ class AuthRepository(private val service: AuthService) {
             // 3. Mapping ke UI Model "User"
             return User(
                 token = body.data.token,
-                email = email
+                username = username
             )
         } else {
             throw Exception("Login Failed: ${response.code()}")
