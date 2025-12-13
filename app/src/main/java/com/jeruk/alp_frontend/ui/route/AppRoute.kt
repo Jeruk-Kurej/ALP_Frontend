@@ -27,6 +27,8 @@ import androidx.navigation.compose.composable
 import androidx.navigation.compose.currentBackStackEntryAsState
 import androidx.navigation.compose.rememberNavController
 import com.jeruk.alp_frontend.ui.view.*
+import com.jeruk.alp_frontend.ui.view.Auth.LoginView
+import com.jeruk.alp_frontend.ui.view.Auth.RegisterView
 import com.jeruk.alp_frontend.ui.viewmodel.AuthViewModel
 
 // 1. Data Class ini harus ada supaya List di bawah tidak merah
@@ -53,17 +55,23 @@ fun AppRoute() {
     val navController = rememberNavController()
     val authViewModel: AuthViewModel = viewModel()
     val navBackStackEntry by navController.currentBackStackEntryAsState()
-    val currentRoute = navBackStackEntry?.destination?.route
+    val currentDestination = navBackStackEntry?.destination
+    val currentRoute = currentDestination?.route
     val currentView = AppView.entries.find { it.name == currentRoute } ?: AppView.Welcoming
 
     Scaffold(
         topBar = {
-            // TopBar muncul di Toko (image_167a80) dan Register (image_3054c6)
-            if (currentView == AppView.Home || currentView == AppView.Register) {
+            // TopBar muncul secara dinamis sesuai halaman
+            if (currentView == AppView.Home || currentView == AppView.Register || currentView == AppView.Setting) {
                 CenterAlignedTopAppBar(
                     title = {
                         Text(
-                            text = if(currentView == AppView.Home) "Pilih Toko" else "Daftar Akun",
+                            text = when(currentView) {
+                                AppView.Home -> "Pilih Toko"
+                                AppView.Register -> "Daftar Akun"
+                                AppView.Setting -> "Pengaturan"
+                                else -> ""
+                            },
                             fontSize = 18.sp,
                             fontWeight = FontWeight.Bold,
                             color = Color(0xFF1F2937)
@@ -81,7 +89,7 @@ fun AppRoute() {
             }
         },
         bottomBar = {
-            // BottomBar hanya muncul di Home/Setting
+            // BottomBar aktif untuk Home dan Setting
             if (currentView == AppView.Home || currentView == AppView.Setting) {
                 NavigationBar(
                     containerColor = Color.White,
@@ -95,7 +103,16 @@ fun AppRoute() {
                         val isSelected = currentRoute == item.view.name
                         NavigationBarItem(
                             selected = isSelected,
-                            onClick = { navController.navigate(item.view.name) },
+                            onClick = {
+                                // Navigasi HIG: Menghindari penumpukan backstack
+                                navController.navigate(item.view.name) {
+                                    popUpTo(navController.graph.findStartDestination().id) {
+                                        saveState = true
+                                    }
+                                    launchSingleTop = true
+                                    restoreState = true
+                                }
+                            },
                             label = { Text(item.label, fontSize = 12.sp) },
                             icon = {
                                 Icon(
@@ -104,8 +121,8 @@ fun AppRoute() {
                                 )
                             },
                             colors = NavigationBarItemDefaults.colors(
-                                selectedIconColor = Color(0xFF9333EA),
-                                indicatorColor = Color(0xFFF3E8FF),
+                                selectedIconColor = Color(0xFF9333EA), // Warna ungu ikon
+                                indicatorColor = Color(0xFFF3E8FF), // Pill background
                                 unselectedIconColor = Color.Gray
                             )
                         )
@@ -119,21 +136,50 @@ fun AppRoute() {
             startDestination = AppView.Welcoming.name,
             modifier = Modifier.padding(innerPadding)
         ) {
-            composable(AppView.Welcoming.name) { WelcomingView { navController.navigate(AppView.Login.name) } }
+            composable(AppView.Welcoming.name) {
+                WelcomingView { navController.navigate(AppView.Login.name) }
+            }
+
             composable(AppView.Login.name) {
                 LoginView(
-                    onLoginSuccess = { navController.navigate(AppView.Home.name) },
+                    onLoginSuccess = {
+                        navController.navigate(AppView.Home.name) {
+                            popUpTo(AppView.Welcoming.name) { inclusive = true }
+                        }
+                    },
                     onNavigateToRegister = { navController.navigate(AppView.Register.name) }
                 )
             }
+
             composable(AppView.Register.name) {
                 RegisterView(
                     onRegisterSuccess = { navController.navigate(AppView.Home.name) },
                     onNavigateToLogin = { navController.popBackStack() }
                 )
             }
+
+            // --- HALAMAN HOME (TOKO) ---
             composable(AppView.Home.name) {
-                TokoView(token = "TOKEN_HERE", navController = navController)
+                // 1. Ambil state terbaru dari authViewModel (isinya ada token hasil login)
+                val userState by authViewModel.userState.collectAsState()
+
+                // 2. Masukkan userState.token, JANGAN "TOKEN_HERE"
+                TokoView(
+                    token = userState.token,
+                    navController = navController
+                )
+            }
+
+            // --- TAMBAHKAN COMPOSABLE SETTING DI SINI ---
+            composable(AppView.Setting.name) {
+                SettingView(
+                    navController = navController,
+                    onLogout = {
+                        navController.navigate(AppView.Welcoming.name) {
+                            popUpTo(0) { inclusive = true }
+                        }
+                    }
+                )
             }
         }
     }
