@@ -25,7 +25,12 @@ import androidx.navigation.compose.rememberNavController
 import com.jeruk.alp_frontend.ui.view.*
 import com.jeruk.alp_frontend.ui.viewmodel.AuthViewModel
 
-// Enum diperbarui dengan Icon untuk Bottom Bar
+// 1. Data Class ini harus ada supaya List di bawah tidak merah
+data class BottomNavItem(
+    val view: AppView,
+    val label: String
+)
+
 enum class AppView(
     val title: String,
     val selectedIcon: ImageVector? = null,
@@ -38,32 +43,23 @@ enum class AppView(
     Setting("Setting", Icons.Filled.Settings, Icons.Outlined.Settings)
 }
 
-data class BottomNavItem(val view: AppView, val label: String)
-
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun AppRoute() {
     val navController = rememberNavController()
     val authViewModel: AuthViewModel = viewModel()
-
     val navBackStackEntry by navController.currentBackStackEntryAsState()
     val currentDestination = navBackStackEntry?.destination
     val currentRoute = currentDestination?.route
     val currentView = AppView.entries.find { it.name == currentRoute } ?: AppView.Welcoming
 
-    val bottomNavItems = listOf(
-        BottomNavItem(AppView.Home, "Toko"),
-        BottomNavItem(AppView.Setting, "Setting")
-    )
-
     Scaffold(
         topBar = {
-            // Sembunyikan TopBar di halaman awal
+            // TopBar hanya muncul di halaman tertentu (bukan Welcoming, Login, Register, Home)
             if (currentView != AppView.Welcoming &&
+                currentView != AppView.Home &&
                 currentView != AppView.Login &&
-                currentView != AppView.Register &&
-                currentView != AppView.Home
-            ) {
+                currentView != AppView.Register) {
                 MyTopAppBar(currentView = currentView, authViewModel = authViewModel)
             }
         },
@@ -71,7 +67,10 @@ fun AppRoute() {
             MyBottomNavigationBar(
                 navController = navController,
                 currentDestination = currentDestination,
-                items = bottomNavItems
+                items = listOf(
+                    BottomNavItem(AppView.Home, "Toko"),
+                    BottomNavItem(AppView.Setting, "Setting")
+                )
             )
         }
     ) { innerPadding ->
@@ -80,12 +79,14 @@ fun AppRoute() {
             startDestination = AppView.Welcoming.name,
             modifier = Modifier.padding(innerPadding)
         ) {
-            composable(route = AppView.Welcoming.name) {
-                WelcomingView(onNavigateToLogin = { navController.navigate(AppView.Login.name) })
+            // --- HALAMAN WELCOMING ---
+            composable(AppView.Welcoming.name) {
+                WelcomingView { navController.navigate(AppView.Login.name) }
             }
-            composable(route = AppView.Login.name) {
+
+            // --- HALAMAN LOGIN ---
+            composable(AppView.Login.name) {
                 LoginView(
-                    authViewModel = authViewModel,
                     onLoginSuccess = {
                         navController.navigate(AppView.Home.name) {
                             popUpTo(AppView.Welcoming.name) { inclusive = true }
@@ -94,7 +95,9 @@ fun AppRoute() {
                     onNavigateToRegister = { navController.navigate(AppView.Register.name) }
                 )
             }
-            composable(route = AppView.Register.name) {
+
+            // --- HALAMAN REGISTER (Tadi ini hilang, makanya mungkin error) ---
+            composable(AppView.Register.name) {
                 RegisterView(
                     authViewModel = authViewModel,
                     onRegisterSuccess = {
@@ -105,9 +108,17 @@ fun AppRoute() {
                     onNavigateToLogin = { navController.popBackStack() }
                 )
             }
-            composable(route = AppView.Home.name) {
+
+            // --- HALAMAN HOME (TOKO) ---
+            composable(AppView.Home.name) {
                 val userState by authViewModel.userState.collectAsState()
                 TokoView(token = userState.token, navController = navController)
+            }
+
+            // --- HALAMAN SETTING ---
+            composable(AppView.Setting.name) {
+                // Kamu bisa buat SettingView.kt nanti, sementara pakai Text dulu
+                Text("Halaman Setting", modifier = Modifier.padding(innerPadding))
             }
         }
     }
@@ -119,7 +130,6 @@ fun MyBottomNavigationBar(
     currentDestination: NavDestination?,
     items: List<BottomNavItem>
 ) {
-    // Bottom Bar hanya muncul di Home/Setting
     if (items.any { it.view.name == currentDestination?.route }) {
         NavigationBar(containerColor = Color.White) {
             items.forEach { item ->
@@ -128,8 +138,8 @@ fun MyBottomNavigationBar(
                 NavigationBarItem(
                     icon = {
                         Icon(
-                            if (isSelected) item.view.selectedIcon!! else item.view.unselectedIcon!!,
-                            null
+                            imageVector = if (isSelected) item.view.selectedIcon!! else item.view.unselectedIcon!!,
+                            contentDescription = item.label
                         )
                     },
                     label = { Text(item.label) },
@@ -155,7 +165,6 @@ fun MyTopAppBar(
     currentView: AppView,
     authViewModel: AuthViewModel
 ) {
-    // Kita observe loading state buat ganti judul jadi "Loading..."
     val isLoading by authViewModel.isLoading.collectAsState()
 
     CenterAlignedTopAppBar(
@@ -166,7 +175,7 @@ fun MyTopAppBar(
             )
         },
         colors = TopAppBarDefaults.centerAlignedTopAppBarColors(
-            containerColor = Color(0xFF6200EE), // Ganti warna sesukamu (misal Ungu/Biru)
+            containerColor = Color(0xFF6200EE),
             titleContentColor = Color.White
         )
     )
