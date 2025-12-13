@@ -10,46 +10,39 @@ import java.io.File
 
 class TokoRepository(
     private val service: TokoService,
-    private val baseUrl: String // <--- KITA MINTA URL DARI LUAR (Container)
+    private val baseUrl: String
 ) {
 
     suspend fun getMyTokos(token: String): List<Toko> {
         val response = service.getAllMyTokos("Bearer $token")
+        val body = response.body()!! // Style Bryan: Force Unwrap !!
 
-        if (response.isSuccessful) {
-            val body = response.body()!!
-            return body.data.map { item ->
-                Toko(
-                    id = item.id,
-                    name = item.name,
-                    description = item.description,
-                    address = item.location,
-                    imageUrl = "$baseUrl${item.image}",
-                    isOpen = item.is_open
-                )
-            }
-        } else {
-            throw Exception("Gagal mengambil data toko: ${response.code()}")
+        return body.data.map { item ->
+            Toko(
+                id = item.id,
+                name = item.name,
+                // Tambahkan ?: "" agar aman seperti di ArtistArtistRepository
+                description = item.description ?: "",
+                address = item.location ?: "",
+                // Perbaiki logic URL gambar agar tidak jadi "http://...null"
+                imageUrl = if (item.image != null) "$baseUrl${item.image}" else "",
+                isOpen = item.is_open
+            )
         }
     }
 
     suspend fun getTokoById(tokoId: Int): Toko {
         val response = service.getTokoById(tokoId)
+        val item = response.body()!!.data // Langsung ambil datanya
 
-        if (response.isSuccessful) {
-            val body = response.body()!!
-            val item = body.data
-            return Toko(
-                id = item.id,
-                name = item.name,
-                description = item.description,
-                address = item.location,
-                imageUrl = "$baseUrl${item.image}",
-                isOpen = item.is_open
-            )
-        } else {
-            throw Exception("Gagal mengambil data toko: ${response.code()}")
-        }
+        return Toko(
+            id = item.id,
+            name = item.name,
+            description = item.description ?: "",
+            address = item.location ?: "",
+            imageUrl = if (item.image != null) "$baseUrl${item.image}" else "",
+            isOpen = item.is_open
+        )
     }
 
     suspend fun createToko(
@@ -76,19 +69,15 @@ class TokoRepository(
             image = imagePart
         )
 
-        if (response.isSuccessful) {
-            val body = response.body()!!
-            val item = body.data
-            return Toko(
-                id = item.id,
-                name = item.name,
-                description = item.description,
-                address = item.location,
-                imageUrl = "$baseUrl${item.image}",
-                isOpen = item.is_open
-            )
-        } else {
-            throw Exception("Gagal membuat toko: ${response.code()}")
-        }
+        val item = response.body()!!.data
+
+        return Toko(
+            id = item.id,
+            name = item.name,
+            description = item.description ?: "",
+            address = item.location ?: "",
+            imageUrl = if (item.image != null) "$baseUrl${item.image}" else "",
+            isOpen = item.is_open
+        )
     }
 }

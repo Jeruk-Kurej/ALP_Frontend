@@ -15,44 +15,37 @@ class ProductRepository(
 
     suspend fun getAllProducts(): List<Product> {
         val response = service.getAllProducts()
+        val body = response.body()!! // Style Bryan: Force Unwrap !!
 
-        if (response.isSuccessful) {
-            val body = response.body()!!
-            return body.data.map { item ->
-                Product(
-                    id = item.id,
-                    name = item.name,
-                    description = item.description,
-                    price = item.price,
-                    imageUrl = if (item.image != null) "$baseUrl${item.image}" else "",
-                    categoryId = item.category.id,
-                    categoryName = item.category.name,
-                    tokos = item.tokos.map { it.name }
-                )
-            }
-        } else {
-            throw Exception("Failed to fetch products: ${response.code()}")
+        return body.data.map { item ->
+            Product(
+                id = item.id,
+                name = item.name,
+                description = item.description ?: "", // Pakai Elvis agar aman
+                price = item.price,
+                // Logic gambar agar URL-nya utuh
+                imageUrl = if (item.image != null) "$baseUrl${item.image}" else "",
+                categoryId = item.category.id,
+                categoryName = item.category.name ?: "",
+                tokos = item.tokos.map { it.name }
+            )
         }
     }
 
     suspend fun getProductById(productId: Int): Product {
         val response = service.getProductById(productId)
+        val item = response.body()!!.data
 
-        if (response.isSuccessful) {
-            val item = response.body()!!.data
-            return Product(
-                id = item.id,
-                name = item.name,
-                description = item.description,
-                price = item.price,
-                imageUrl = if (item.image != null) "$baseUrl${item.image}" else "",
-                categoryId = item.category.id,
-                categoryName = item.category.name,
-                tokos = item.tokos.map { it.name }
-            )
-        } else {
-            throw Exception("Failed to fetch product: ${response.code()}")
-        }
+        return Product(
+            id = item.id,
+            name = item.name,
+            description = item.description ?: "",
+            price = item.price,
+            imageUrl = if (item.image != null) "$baseUrl${item.image}" else "",
+            categoryId = item.category.id,
+            categoryName = item.category.name ?: "",
+            tokos = item.tokos.map { it.name }
+        )
     }
 
     suspend fun createProduct(
@@ -76,30 +69,27 @@ class ProductRepository(
         }
 
         val response = service.createProduct(
-            "Bearer $token",
-            nameBody,
-            descBody,
-            priceBody,
-            categoryBody,
-            tokoIdsBody,
-            imagePart
+            token = "Bearer $token",
+            name = nameBody,
+            description = descBody,
+            price = priceBody,
+            categoryId = categoryBody,
+            tokoIds = tokoIdsBody,
+            image = imagePart
         )
 
-        if (response.isSuccessful) {
-            val item = response.body()!!.data
-            return Product(
-                id = item.id,
-                name = item.name,
-                description = item.description,
-                price = item.price,
-                imageUrl = if (item.image != null) "$baseUrl${item.image}" else "",
-                categoryId = item.category.id,
-                categoryName = item.category.name,
-                tokos = item.tokos.map { it.name }
-            )
-        } else {
-            throw Exception("Failed to create product: ${response.code()}")
-        }
+        val item = response.body()!!.data
+
+        return Product(
+            id = item.id,
+            name = item.name,
+            description = item.description ?: "",
+            price = item.price,
+            imageUrl = if (item.image != null) "$baseUrl${item.image}" else "",
+            categoryId = item.category.id,
+            categoryName = item.category.name ?: "",
+            tokos = item.tokos.map { it.name }
+        )
     }
 
     suspend fun updateProduct(
@@ -124,40 +114,34 @@ class ProductRepository(
         }
 
         val response = service.updateProduct(
-            "Bearer $token",
-            productId,
-            nameBody,
-            descBody,
-            priceBody,
-            categoryBody,
-            tokoIdsBody,
-            imagePart
+            token = "Bearer $token",
+            productId = productId,
+            name = nameBody,
+            description = descBody,
+            price = priceBody,
+            categoryId = categoryBody,
+            tokoIds = tokoIdsBody,
+            image = imagePart
         )
 
-        if (response.isSuccessful) {
-            val item = response.body()!!.data
-            return Product(
-                id = item.id,
-                name = item.name,
-                description = item.description,
-                price = item.price,
-                imageUrl = if (item.image != null) "$baseUrl${item.image}" else "",
-                categoryId = item.category.id,
-                categoryName = item.category.name,
-                tokos = item.tokos.map { it.name }
-            )
-        } else {
-            throw Exception("Failed to update product: ${response.code()}")
-        }
+        val item = response.body()!!.data
+
+        return Product(
+            id = item.id,
+            name = item.name,
+            description = item.description ?: "",
+            price = item.price,
+            imageUrl = if (item.image != null) "$baseUrl${item.image}" else "",
+            categoryId = item.category.id,
+            categoryName = item.category.name ?: "",
+            tokos = item.tokos.map { it.name }
+        )
     }
 
     suspend fun deleteProduct(token: String, productId: Int): String {
         val response = service.deleteProduct("Bearer $token", productId)
+        val body = response.body()!! // Konsisten pakai force unwrap style kamu
 
-        if (response.isSuccessful) {
-            return response.body()?.message ?: "Product deleted successfully"
-        } else {
-            throw Exception("Failed to delete product: ${response.code()}")
-        }
+        return body.message ?: "Product deleted successfully"
     }
 }

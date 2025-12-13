@@ -9,72 +9,52 @@ class CategoryRepository(
 
     suspend fun getAllCategories(): List<Category> {
         val response = service.getAllCategories()
+        val body = response.body()!! // Style Bryan: Force Unwrap !!
 
-        if (response.isSuccessful) {
-            val body = response.body()!!
-            return body.data.map { item ->
-                Category(
-                    id = item.id,
-                    name = item.name
-                )
-            }
-        } else {
-            throw Exception("Failed to fetch categories: ${response.code()}")
+        return body.data.map { item ->
+            Category(
+                id = item.id,
+                name = item.name ?: "" // Elvis operator agar aman
+            )
         }
     }
 
     suspend fun getCategoryById(categoryId: Int): Category {
         val response = service.getCategoryById(categoryId)
+        val item = response.body()!!.data
 
-        if (response.isSuccessful) {
-            val item = response.body()!!.data
-            return Category(
-                id = item.id,
-                name = item.name
-            )
-        } else {
-            throw Exception("Failed to fetch category: ${response.code()}")
-        }
+        return Category(
+            id = item.id,
+            name = item.name ?: ""
+        )
     }
 
     suspend fun createCategory(token: String, name: String): Category {
-        val body = mapOf("name" to name)
-        val response = service.createCategory("Bearer $token", body)
+        val bodyMap = mapOf("name" to name)
+        val response = service.createCategory("Bearer $token", bodyMap)
+        val item = response.body()!!.data
 
-        if (response.isSuccessful) {
-            val item = response.body()!!.data
-            return Category(
-                id = item.id,
-                name = item.name
-            )
-        } else {
-            throw Exception("Failed to create category: ${response.code()}")
-        }
+        return Category(
+            id = item.id,
+            name = item.name ?: ""
+        )
     }
 
     suspend fun updateCategory(token: String, categoryId: Int, name: String): Category {
-        val body = mapOf("name" to name)
-        val response = service.updateCategory("Bearer $token", categoryId, body)
+        val bodyMap = mapOf("name" to name)
+        val response = service.updateCategory("Bearer $token", categoryId, bodyMap)
+        val item = response.body()!!.data
 
-        if (response.isSuccessful) {
-            val item = response.body()!!.data
-            return Category(
-                id = item.id,
-                name = item.name
-            )
-        } else {
-            throw Exception("Failed to update category: ${response.code()}")
-        }
+        return Category(
+            id = item.id,
+            name = item.name ?: ""
+        )
     }
 
     suspend fun deleteCategory(token: String, categoryId: Int): String {
         val response = service.deleteCategory("Bearer $token", categoryId)
+        val body = response.body()!! // Konsisten pakai force unwrap
 
-        if (response.isSuccessful) {
-            val message = response.body()?.message ?: "Category deleted successfully"
-            return message
-        } else {
-            throw Exception("Failed to delete category: ${response.code()}")
-        }
+        return body.message ?: "Category deleted successfully"
     }
 }

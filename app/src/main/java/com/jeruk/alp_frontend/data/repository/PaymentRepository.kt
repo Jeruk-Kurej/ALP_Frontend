@@ -9,54 +9,45 @@ class PaymentRepository(
 
     suspend fun getAllPayments(): List<Payment> {
         val response = service.getAllPayments()
+        val body = response.body()!! // Style Bryan: Force Unwrap !!
 
-        if (response.isSuccessful) {
-            val body = response.body()!!
-            return body.data.map { item ->
-                Payment(
-                    id = item.id,
-                    name = item.name
-                )
-            }
-        } else {
-            throw Exception("Failed to fetch payments: ${response.code()}")
+        return body.data.map { item ->
+            Payment(
+                id = item.id,
+                name = item.name ?: "" // Elvis operator agar tidak null di UI
+            )
         }
     }
 
     suspend fun createPayment(token: String, name: String): Payment {
-        val body = mapOf("name" to name)
-        val response = service.createPayment("Bearer $token", body)
+        val bodyMap = mapOf("name" to name)
+        val response = service.createPayment("Bearer $token", bodyMap)
 
-        if (response.isSuccessful) {
-            val item = response.body()!!.data
-            return Payment(
-                id = item.id,
-                name = item.name
-            )
-        } else {
-            throw Exception("Failed to create payment: ${response.code()}")
-        }
+        val item = response.body()!!.data // Langsung ambil data dari body
+
+        return Payment(
+            id = item.id,
+            name = item.name ?: ""
+        )
     }
 
     suspend fun updatePayment(token: String, paymentId: Int, name: String): Payment {
-        val body = mapOf("name" to name)
-        val response = service.updatePayment("Bearer $token", paymentId, body)
+        val bodyMap = mapOf("name" to name)
+        val response = service.updatePayment("Bearer $token", paymentId, bodyMap)
 
-        if (response.isSuccessful) {
-            val item = response.body()!!.data
-            return Payment(
-                id = item.id,
-                name = item.name
-            )
-        } else {
-            throw Exception("Failed to update payment: ${response.code()}")
-        }
+        val item = response.body()!!.data
+
+        return Payment(
+            id = item.id,
+            name = item.name ?: ""
+        )
     }
 
     suspend fun deletePayment(token: String, paymentId: Int): String {
         val response = service.deletePayment("Bearer $token", paymentId)
 
         if (response.isSuccessful) {
+            // Kita bisa ambil pesan dari body jika DTO DeletePayment punya field message
             return "Payment deleted successfully"
         } else {
             throw Exception("Failed to delete payment: ${response.code()}")
