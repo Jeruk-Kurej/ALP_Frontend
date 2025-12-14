@@ -1,6 +1,7 @@
 package com.jeruk.alp_frontend.ui.view.Auth
 
 import android.widget.Toast
+import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.interaction.MutableInteractionSource
@@ -27,6 +28,7 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.LocalFocusManager
+import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.input.ImeAction
 import androidx.compose.ui.text.input.KeyboardType
@@ -35,6 +37,7 @@ import androidx.compose.ui.text.input.VisualTransformation
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.lifecycle.viewmodel.compose.viewModel
+import com.jeruk.alp_frontend.R
 import com.jeruk.alp_frontend.ui.viewmodel.AuthViewModel
 
 @Composable
@@ -93,8 +96,12 @@ fun RegisterView(
                 ),
             contentAlignment = Alignment.Center
         ) {
-            Icon(Icons.Default.Star, null, tint = Color.White, modifier = Modifier.size(45.dp))
-        }
+            Image(
+                painter = painterResource(R.drawable.logo_sum_o),
+                contentDescription = null,
+                modifier = Modifier
+                    .size(80.dp)
+            )        }
 
         Text(
             text = "Bergabung dengan Sum-O",

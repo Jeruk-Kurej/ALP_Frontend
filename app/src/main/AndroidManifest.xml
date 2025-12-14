@@ -16,9 +16,9 @@
 
         android:dataExtractionRules="@xml/data_extraction_rules"
         android:fullBackupContent="@xml/backup_rules"
-        android:icon="@mipmap/ic_launcher"
+        android:icon="@drawable/logo_sum_o"
         android:label="Sum-O"
-        android:roundIcon="@mipmap/ic_launcher_round"
+        android:roundIcon="@drawable/logo_sum_o"
         android:supportsRtl="true"
         android:theme="@style/Theme.ALP_Frontend">
 
