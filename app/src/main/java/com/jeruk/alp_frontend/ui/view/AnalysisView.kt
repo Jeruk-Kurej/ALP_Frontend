@@ -20,6 +20,7 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.navigation.NavController
+import com.jeruk.alp_frontend.ui.route.AppView
 
 @Composable
 fun AnalysisPageView(navController: NavController) {
@@ -55,9 +56,10 @@ fun AnalysisPageView(navController: NavController) {
 
                     Spacer(modifier = Modifier.height(8.dp))
 
-                    // Button Lihat Analisis Lengkap
                     Button(
-                        onClick = { /* Navigasi ke AnalisisDetailView */ },
+                        onClick = {
+                            navController.navigate(AppView.AnalysisDetail.name)
+                        },
                         modifier = Modifier.fillMaxWidth().height(52.dp),
                         shape = RoundedCornerShape(14.dp),
                         contentPadding = PaddingValues(0.dp),

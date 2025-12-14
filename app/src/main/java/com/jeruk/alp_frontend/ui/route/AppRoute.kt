@@ -12,9 +12,7 @@ import androidx.compose.material.icons.outlined.Inventory2
 import androidx.compose.material.icons.outlined.Settings
 import androidx.compose.material.icons.outlined.Storefront
 import androidx.compose.material3.*
-import androidx.compose.runtime.Composable
-import androidx.compose.runtime.collectAsState
-import androidx.compose.runtime.getValue
+import androidx.compose.runtime.*
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.vector.ImageVector
@@ -26,113 +24,119 @@ import androidx.navigation.NavDestination
 import androidx.navigation.NavDestination.Companion.hierarchy
 import androidx.navigation.NavGraph.Companion.findStartDestination
 import androidx.navigation.NavHostController
-import androidx.navigation.compose.NavHost
-import androidx.navigation.compose.composable
-import androidx.navigation.compose.currentBackStackEntryAsState
-import androidx.navigation.compose.rememberNavController
+import androidx.navigation.compose.*
 import com.jeruk.alp_frontend.ui.view.*
 import com.jeruk.alp_frontend.ui.view.Auth.LoginView
 import com.jeruk.alp_frontend.ui.view.Auth.RegisterView
 import com.jeruk.alp_frontend.ui.viewmodel.AuthViewModel
 
-// 1. Data Class ini harus ada supaya List di bawah tidak merah
+// 1. Model untuk Item di Bottom Bar
 data class BottomNavItem(
     val view: AppView,
     val label: String
 )
 
+// 2. Enum Route dengan metadata Icon
 enum class AppView(
     val title: String,
     val selectedIcon: ImageVector? = null,
     val unselectedIcon: ImageVector? = null
 ) {
-    Welcoming("Welcoming"),
+    Welcoming("Welcome"),
     Login("Login"),
-    Register("Register"),
+    Register("Daftar Akun"),
 
-    // Waiter Mode
-    Home("Toko", Icons.Filled.Storefront, Icons.Outlined.Storefront),
+    // --- Waiter Mode ---
+    Home("Pilih Toko", Icons.Filled.Storefront, Icons.Outlined.Storefront),
 
-    // Admin Mode
-    Analysis("Home", Icons.Filled.GridView, Icons.Outlined.GridView),
-    AdminProduk("Produk", Icons.Filled.Inventory2, Icons.Outlined.Inventory2),
-    AdminToko("Toko", Icons.Filled.Storefront, Icons.Outlined.Storefront),
-    Setting("Setting", Icons.Filled.Settings, Icons.Outlined.Settings)
+    // --- Admin Mode ---
+    Analysis("Dashboard", Icons.Filled.GridView, Icons.Outlined.GridView),
+    AdminToko("Kelola Toko", Icons.Filled.Storefront, Icons.Outlined.Storefront),
+    AdminProduk("Kelola Produk", Icons.Filled.Inventory2, Icons.Outlined.Inventory2),
+
+    // --- Shared ---
+    Setting("Pengaturan", Icons.Filled.Settings, Icons.Outlined.Settings),
+
+    // --- Sub-Pages ---
+    AnalysisDetail("Detail Analisis"),
+    CreateToko("Tambah Toko")
 }
 
+@OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun AppRoute() {
     val navController = rememberNavController()
     val authViewModel: AuthViewModel = viewModel()
     val navBackStackEntry by navController.currentBackStackEntryAsState()
-    val currentRoute = navBackStackEntry?.destination?.route
+    val currentDestination = navBackStackEntry?.destination
+    val currentRoute = currentDestination?.route
     val currentView = AppView.entries.find { it.name == currentRoute } ?: AppView.Welcoming
 
-    // Logic: Cek apakah user sedang di mode Admin
-    val adminRoutes = listOf(AppView.Analysis.name, AppView.AdminProduk.name, AppView.AdminToko.name)
+    // State Global untuk Mode Admin
+    val adminRoutes = listOf(AppView.Analysis.name, AppView.AdminToko.name, AppView.AdminProduk.name, AppView.AnalysisDetail.name, AppView.CreateToko.name)
+    var isUserInAdminMode by remember { mutableStateOf(false) }
 
-    // Perbaikan: Gunakan safe call agar tidak crash saat backstack kosong
-    val prevRoute = try { navController.previousBackStackEntry?.destination?.route } catch (e: Exception) { null }
-    val isAdminMode = adminRoutes.contains(currentRoute) || (currentRoute == AppView.Setting.name && prevRoute in adminRoutes)
+    // Logic: Update mode berdasarkan rute yang sedang dibuka
+    LaunchedEffect(currentRoute) {
+        if (currentRoute in adminRoutes) {
+            isUserInAdminMode = true
+        } else if (currentRoute == AppView.Home.name) {
+            isUserInAdminMode = false
+        }
+    }
+
+    // Pages yang dianggap halaman utama (Root)
+    val rootPages = listOf(
+        AppView.Home.name,
+        AppView.Analysis.name,
+        AppView.AdminToko.name,
+        AppView.AdminProduk.name,
+        AppView.Setting.name
+    )
+
+    val canNavigateBack = currentRoute !in rootPages && navController.previousBackStackEntry != null
 
     Scaffold(
+        topBar = {
+            // Sembunyikan Header di halaman Welcoming, Login, Register
+            val noHeaderPages = listOf(AppView.Welcoming.name, AppView.Login.name, AppView.Register.name)
+            if (currentRoute !in noHeaderPages && currentRoute != null) {
+                MyTopAppBar(
+                    currentView = currentView,
+                    navController = navController,
+                    canNavigateBack = canNavigateBack
+                )
+            }
+        },
         bottomBar = {
-            // Bottom bar hanya muncul jika route tidak null dan sesuai kondisi
-            if (currentRoute != null && (currentView == AppView.Home || currentView == AppView.Setting || isAdminMode)) {
-                NavigationBar(containerColor = Color.White) {
-                    val items = if (isAdminMode) {
-                        listOf(
-                            BottomNavItem(AppView.Analysis, "Home"),
-                            BottomNavItem(AppView.AdminToko, "Toko"),
-                            BottomNavItem(AppView.AdminProduk, "Produk"),
-                            BottomNavItem(AppView.Setting, "Setting")
-                        )
-                    } else {
-                        listOf(
-                            BottomNavItem(AppView.Home, "Toko"),
-                            BottomNavItem(AppView.Setting, "Setting")
-                        )
-                    }
-
-                    items.forEach { item ->
-                        val isSelected = currentRoute == item.view.name
-                        NavigationBarItem(
-                            selected = isSelected,
-                            onClick = {
-                                navController.navigate(item.view.name) {
-                                    popUpTo(navController.graph.findStartDestination().id) { saveState = true }
-                                    launchSingleTop = true
-                                    restoreState = true
-                                }
-                            },
-                            label = { Text(item.label, fontSize = 10.sp) },
-                            icon = {
-                                // Gunakan Icon dari enum, pastikan tidak null
-                                val icon = if (isSelected) item.view.selectedIcon else item.view.unselectedIcon
-                                if (icon != null) {
-                                    Icon(icon, contentDescription = null)
-                                }
-                            },
-                            colors = NavigationBarItemDefaults.colors(
-                                selectedIconColor = Color(0xFF9333EA),
-                                indicatorColor = Color(0xFFF3E8FF)
-                            )
-                        )
-                    }
+            // Bottom Bar hanya muncul di halaman utama
+            if (currentRoute in rootPages) {
+                val items = if (isUserInAdminMode) {
+                    listOf(
+                        BottomNavItem(AppView.Analysis, "Home"),
+                        BottomNavItem(AppView.AdminToko, "Toko"),
+                        BottomNavItem(AppView.AdminProduk, "Produk"),
+                        BottomNavItem(AppView.Setting, "Setting")
+                    )
+                } else {
+                    listOf(
+                        BottomNavItem(AppView.Home, "Toko"),
+                        BottomNavItem(AppView.Setting, "Setting")
+                    )
                 }
+                MyBottomNavigationBar(navController, currentDestination, items)
             }
         }
     ) { innerPadding ->
         NavHost(
             navController = navController,
-            startDestination = AppView.Welcoming.name, // Pastikan ini ada di bawah!
+            startDestination = AppView.Welcoming.name,
             modifier = Modifier.padding(innerPadding)
         ) {
-            // WAJIB ADA: Rute-rute awal agar tidak Force Close
+            // --- AUTHENTICATION ---
             composable(AppView.Welcoming.name) {
                 WelcomingView { navController.navigate(AppView.Login.name) }
             }
-
             composable(AppView.Login.name) {
                 LoginView(
                     onLoginSuccess = {
@@ -143,7 +147,6 @@ fun AppRoute() {
                     onNavigateToRegister = { navController.navigate(AppView.Register.name) }
                 )
             }
-
             composable(AppView.Register.name) {
                 RegisterView(
                     authViewModel = authViewModel,
@@ -156,27 +159,61 @@ fun AppRoute() {
                 )
             }
 
+            // --- WAITER MODE ---
             composable(AppView.Home.name) {
                 val userState by authViewModel.userState.collectAsState()
                 TokoView(token = userState.token, navController = navController)
             }
 
-            // Rute Admin Mode
-            composable(AppView.Analysis.name) { AnalysisPageView(navController) }
-
-            composable(AppView.Setting.name) {
-                SettingView(
-                    navController = navController,
-                    onLogout = {
-                        navController.navigate(AppView.Welcoming.name) {
-                            popUpTo(0) { inclusive = true }
-                        }
-                    }
+            // --- ADMIN MODE ---
+            composable(AppView.Analysis.name) {
+                AnalysisPageView(navController = navController)
+            }
+            composable(AppView.AdminToko.name) {
+                TokoAdminView(navController = navController)
+            }
+            composable(AppView.AdminProduk.name) {
+                ProductAdminView(navController = navController)
+            }
+            composable(AppView.AnalysisDetail.name) {
+                AnalysisDetailView(navController = navController)
+            }
+            composable(AppView.CreateToko.name) {
+                val userState by authViewModel.userState.collectAsState()
+                TokoAdminView( 
+                    navController = navController
                 )
+            }
+
+            // --- SHARED SETTING ---
+            composable(AppView.Setting.name) {
+                if (isUserInAdminMode) {
+                    SettingAdminView(
+                        navController = navController,
+                        onLogout = {
+                            navController.navigate(AppView.Welcoming.name) { popUpTo(0) { inclusive = true } }
+                        },
+                        onExitAdminMode = {
+                            isUserInAdminMode = false
+                            navController.navigate(AppView.Home.name) {
+                                popUpTo(AppView.Analysis.name) { inclusive = true }
+                            }
+                        }
+                    )
+                } else {
+                    SettingView(
+                        navController = navController,
+                        onLogout = {
+                            navController.navigate(AppView.Welcoming.name) { popUpTo(0) { inclusive = true } }
+                        }
+                    )
+                }
             }
         }
     }
 }
+
+// --- HELPER COMPONENTS (HIG STYLE) ---
 
 @Composable
 fun MyBottomNavigationBar(
@@ -184,31 +221,29 @@ fun MyBottomNavigationBar(
     currentDestination: NavDestination?,
     items: List<BottomNavItem>
 ) {
-    if (items.any { it.view.name == currentDestination?.route }) {
-        NavigationBar(containerColor = Color.White) {
-            items.forEach { item ->
-                val isSelected =
-                    currentDestination?.hierarchy?.any { it.route == item.view.name } == true
-                NavigationBarItem(
-                    icon = {
-                        Icon(
-                            imageVector = if (isSelected) item.view.selectedIcon!! else item.view.unselectedIcon!!,
-                            contentDescription = item.label
-                        )
-                    },
-                    label = { Text(item.label) },
-                    selected = isSelected,
-                    onClick = {
-                        navController.navigate(item.view.name) {
-                            popUpTo(navController.graph.findStartDestination().id) {
-                                saveState = true
-                            }
-                            launchSingleTop = true
-                            restoreState = true
-                        }
+    NavigationBar(containerColor = Color.White, tonalElevation = 8.dp) {
+        items.forEach { item ->
+            val isSelected = currentDestination?.hierarchy?.any { it.route == item.view.name } == true
+            NavigationBarItem(
+                selected = isSelected,
+                onClick = {
+                    navController.navigate(item.view.name) {
+                        popUpTo(navController.graph.findStartDestination().id) { saveState = true }
+                        launchSingleTop = true
+                        restoreState = true
                     }
+                },
+                label = { Text(item.label, fontSize = 10.sp) },
+                icon = {
+                    val icon = if (isSelected) item.view.selectedIcon else item.view.unselectedIcon
+                    if (icon != null) Icon(icon, contentDescription = null)
+                },
+                colors = NavigationBarItemDefaults.colors(
+                    selectedIconColor = Color(0xFF9333EA),
+                    indicatorColor = Color(0xFFF3E8FF),
+                    unselectedIconColor = Color.Gray
                 )
-            }
+            )
         }
     }
 }
@@ -217,20 +252,27 @@ fun MyBottomNavigationBar(
 @Composable
 fun MyTopAppBar(
     currentView: AppView,
-    authViewModel: AuthViewModel
+    navController: NavHostController,
+    canNavigateBack: Boolean
 ) {
-    val isLoading by authViewModel.isLoading.collectAsState()
-
     CenterAlignedTopAppBar(
         title = {
             Text(
-                text = if (isLoading) "Loading..." else currentView.title,
-                style = MaterialTheme.typography.titleLarge
+                text = currentView.title,
+                style = MaterialTheme.typography.titleMedium,
+                fontWeight = FontWeight.SemiBold
             )
         },
+        navigationIcon = {
+            if (canNavigateBack) {
+                IconButton(onClick = { navController.popBackStack() }) {
+                    Icon(Icons.AutoMirrored.Filled.ArrowBack, contentDescription = "Back")
+                }
+            }
+        },
         colors = TopAppBarDefaults.centerAlignedTopAppBarColors(
-            containerColor = Color(0xFF6200EE),
-            titleContentColor = Color.White
+            containerColor = Color.White,
+            titleContentColor = Color.Black
         )
     )
 }
