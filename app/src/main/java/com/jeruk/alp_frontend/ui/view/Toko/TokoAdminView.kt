@@ -4,6 +4,7 @@ import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
+import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Add
 import androidx.compose.material3.*
@@ -24,7 +25,7 @@ import com.jeruk.alp_frontend.ui.viewmodel.TokoViewModel
 @Composable
 fun TokoAdminView(
     navController: NavController,
-    authViewModel: AuthViewModel = viewModel(),
+    authViewModel: AuthViewModel, // Wajib dikirim dari AppRoute
     tokoViewModel: TokoViewModel = viewModel()
 ) {
     val userState by authViewModel.userState.collectAsState()
@@ -32,7 +33,6 @@ fun TokoAdminView(
     val isLoading by tokoViewModel.isLoading.collectAsState()
     var showDeleteDialog by remember { mutableStateOf<Toko?>(null) }
 
-    // Logic Refresh: Menarik data ulang setiap kali masuk ke page ini
     val navBackStackEntry by navController.currentBackStackEntryAsState()
     LaunchedEffect(navBackStackEntry) {
         if (userState.token.isNotEmpty()) {
@@ -40,22 +40,13 @@ fun TokoAdminView(
         }
     }
 
-    Scaffold(
-        floatingActionButton = {
-            FloatingActionButton(
-                onClick = { navController.navigate(AppView.CreateToko.name) },
-                containerColor = Color(0xFF10B981)
-            ) {
-                Icon(Icons.Default.Add, contentDescription = "Tambah", tint = Color.White)
-            }
-        }
-    ) { innerPadding ->
-        Column(
-            modifier = Modifier
-                .padding(innerPadding)
-                .fillMaxSize()
-                .background(Color(0xFFF9FAFB)) // Warna background kalem HIG
-        ) {
+    // Pakai Box sebagai container utama agar bisa menumpuk tombol di atas list
+    Box(
+        modifier = Modifier
+            .fillMaxSize()
+            .background(Color(0xFFF9FAFB))
+    ) {
+        Column(modifier = Modifier.fillMaxSize()) {
             if (isLoading) {
                 LinearProgressIndicator(modifier = Modifier.fillMaxWidth(), color = Color(0xFF10B981))
             }
@@ -65,20 +56,35 @@ fun TokoAdminView(
                     Text("Belum ada toko yang terdaftar", color = Color.Gray)
                 }
             } else {
-                // --- LIST TOKO KHUSUS ADMIN ---
                 LazyColumn(
+                    modifier = Modifier.fillMaxSize(),
                     contentPadding = PaddingValues(16.dp),
                     verticalArrangement = Arrangement.spacedBy(12.dp)
                 ) {
                     items(tokos) { item ->
                         AdminTokoCard(
                             toko = item,
-                            onEdit = { /* TODO: Navigasi Edit */ },
+                            onEdit = {
+                                navController.navigate("${AppView.UpdateToko.name}/${item.id}")
+                            },
                             onDelete = { showDeleteDialog = item }
                         )
                     }
                 }
             }
+        }
+
+        // --- TOMBOL ADD MANUAL (Alignment BottomEnd) ---
+        FloatingActionButton(
+            onClick = { navController.navigate(AppView.CreateToko.name) },
+            containerColor = Color(0xFF10B981),
+            contentColor = Color.White,
+            shape = RoundedCornerShape(16.dp),
+            modifier = Modifier
+                .align(Alignment.BottomEnd) // Posisikan di kanan bawah
+                .padding(24.dp) // Kasih jarak dari pinggir layar
+        ) {
+            Icon(Icons.Default.Add, contentDescription = "Tambah Toko")
         }
     }
 
@@ -106,7 +112,3 @@ fun TokoAdminView(
         )
     }
 }
-
-// --- KOMPONEN KARTU ADMIN (DENGAN EDIT & DELETE) ---
-
-

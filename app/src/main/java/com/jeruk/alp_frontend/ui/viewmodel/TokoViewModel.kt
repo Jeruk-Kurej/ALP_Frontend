@@ -25,29 +25,65 @@ class TokoViewModel : ViewModel() {
     private val _tokos = MutableStateFlow<List<Toko>>(emptyList())
     val tokos: StateFlow<List<Toko>> = _tokos
 
+    private val _currentToko = MutableStateFlow<Toko?>(null)
+    val currentToko: StateFlow<Toko?> = _currentToko
+
+    fun getTokoById(id: Int) {
+        viewModelScope.launch {
+            _isLoading.value = true
+            try { _currentToko.value = repository.getTokoById(id) }
+            catch (e: Exception) { Log.e("TOKO_VM", "Error: ${e.message}") }
+            finally { _isLoading.value = false }
+        }
+    }
+
+    // ... di dalam TokoViewModel.kt ...
+
     fun createToko(token: String, name: String, description: String, location: String, imageFile: File?) {
         viewModelScope.launch {
             _isLoading.value = true
             _errorMessage.value = null
-            _isSuccess.value = false
+            _isSuccess.value = false // RESET STATE AWAL
             try {
                 repository.createToko(token, name, description, location, imageFile)
-                _isSuccess.value = true
+                _isSuccess.value = true // TRIGGER SUKSES
             } catch (e: Exception) {
                 _errorMessage.value = e.message
-                Log.e("VIEWMODEL_ERROR", "Gagal Create: ${e.message}")
+                _isSuccess.value = false
             } finally {
                 _isLoading.value = false
             }
         }
     }
 
+    fun updateToko(token: String, id: Int, name: String, desc: String, loc: String, file: File?) {
+        viewModelScope.launch {
+            _isLoading.value = true
+            _errorMessage.value = null
+            _isSuccess.value = false // RESET STATE AWAL
+            try {
+                repository.updateToko(token, id, name, desc, loc, file)
+                _isSuccess.value = true // TRIGGER SUKSES
+            } catch (e: Exception) {
+                _errorMessage.value = e.message
+                _isSuccess.value = false
+            } finally {
+                _isLoading.value = false
+            }
+        }
+    }
+
+    // Panggil ini HANYA saat pindah page/dispose
+    fun clearState() {
+        _isSuccess.value = false
+        _errorMessage.value = null
+    }
+
     fun getMyTokos(token: String) {
         viewModelScope.launch {
             _isLoading.value = true
-            try {
-                _tokos.value = repository.getMyTokos(token)
-            } catch (e: Exception) { e.printStackTrace() }
+            try { _tokos.value = repository.getMyTokos(token) }
+            catch (e: Exception) { e.printStackTrace() }
             finally { _isLoading.value = false }
         }
     }
@@ -57,11 +93,15 @@ class TokoViewModel : ViewModel() {
             _isLoading.value = true
             try {
                 repository.deleteToko(token, id)
-                getMyTokos(token) // Refresh otomatis
-            } catch (e: Exception) { e.printStackTrace() }
+                getMyTokos(token)
+            } catch (e: Exception) { _errorMessage.value = e.message }
             finally { _isLoading.value = false }
         }
     }
 
-    fun resetSuccess() { _isSuccess.value = false }
+    fun resetSuccess() {
+        _isSuccess.value = false
+        _currentToko.value = null
+        _errorMessage.value = null
+    }
 }
