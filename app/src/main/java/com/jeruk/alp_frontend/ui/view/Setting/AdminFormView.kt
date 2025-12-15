@@ -110,7 +110,7 @@ fun AdminFormView(
                         // Sembunyikan keyboard saat klik masuk
                         keyboardController?.hide()
 
-                        if (password == "harusnyakamutahu") {
+                        if (password == "123") {
                             onAdminAuthenticated()
                         } else {
                             isError = true

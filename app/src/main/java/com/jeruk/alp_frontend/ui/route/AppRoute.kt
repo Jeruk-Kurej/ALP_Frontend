@@ -28,8 +28,12 @@ import androidx.navigation.compose.*
 import com.jeruk.alp_frontend.ui.view.*
 import com.jeruk.alp_frontend.ui.view.Analysis.AnalysisPageView
 import com.jeruk.alp_frontend.ui.view.Auth.LoginView
+import com.jeruk.alp_frontend.ui.view.Auth.RegisterView
 import com.jeruk.alp_frontend.ui.view.Setting.SettingAdminView
 import com.jeruk.alp_frontend.ui.view.Setting.SettingView
+import com.jeruk.alp_frontend.ui.view.Product.AddProductView
+import com.jeruk.alp_frontend.ui.view.Product.ProductAdminView
+import com.jeruk.alp_frontend.ui.view.Category.AddCategoryView
 import com.jeruk.alp_frontend.ui.view.Toko.CreateTokoView
 import com.jeruk.alp_frontend.ui.view.Toko.TokoAdminView
 import com.jeruk.alp_frontend.ui.view.Toko.TokoView
@@ -64,7 +68,9 @@ enum class AppView(
 
     // --- Sub-Pages ---
     AnalysisDetail("Detail Analisis"),
-    CreateToko("Tambah Toko")
+    CreateToko("Tambah Toko"),
+    AddProduct("Tambah Produk"),
+    AddCategory("Tambah Kategori")
 }
 
 @OptIn(ExperimentalMaterial3Api::class)
@@ -80,7 +86,7 @@ fun AppRoute() {
     val currentView = AppView.entries.find { it.name == currentRoute } ?: AppView.Welcoming
 
     // State Mode Admin
-    val adminRoutes = listOf(AppView.Analysis.name, AppView.AdminToko.name, AppView.AdminProduk.name, AppView.AnalysisDetail.name, AppView.CreateToko.name)
+    val adminRoutes = listOf(AppView.Analysis.name, AppView.AdminToko.name, AppView.AdminProduk.name, AppView.AnalysisDetail.name, AppView.CreateToko.name, AppView.AddProduct.name)
     var isUserInAdminMode by remember { mutableStateOf(false) }
 
     LaunchedEffect(currentRoute) {
@@ -122,6 +128,16 @@ fun AppRoute() {
                 )
             }
 
+            composable(AppView.Register.name) {
+                RegisterView(
+                    authViewModel = authViewModel,
+                    onRegisterSuccess = {
+                        navController.navigate(AppView.Home.name)
+                    },
+                    onNavigateToLogin = { navController.navigate(AppView.Login.name) }
+                )
+            }
+
             composable(AppView.Home.name) {
                 // Gunakan token dari userState level atas
                 TokoView(token = userState.token, navController = navController)
@@ -143,6 +159,19 @@ fun AppRoute() {
             }
 
             composable(AppView.Analysis.name) { AnalysisPageView(navController) }
+            composable(AppView.AdminProduk.name) { ProductAdminView(navController, token = userState.token) }
+            composable(AppView.AddProduct.name) {
+                AddProductView(
+                    navController = navController,
+                    token = userState.token
+                )
+            }
+            composable(AppView.AddCategory.name) {
+                AddCategoryView(
+                    navController = navController,
+                    token = userState.token
+                )
+            }
             composable(AppView.Setting.name) {
                 if (isUserInAdminMode) {
                     SettingAdminView(

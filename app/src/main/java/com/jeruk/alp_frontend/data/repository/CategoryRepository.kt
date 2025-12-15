@@ -7,9 +7,20 @@ class CategoryRepository(
     private val service: CategoryService
 ) {
 
-    suspend fun getAllCategories(): List<Category> {
-        val response = service.getAllCategories()
+    // Fetch all categories - requires authentication token (fixes 401 error)
+    suspend fun getAllCategories(token: String): List<Category> {
+        android.util.Log.d("CategoryRepository", "Calling API to get all categories")
+        val response = service.getAllCategories("Bearer $token")
+        android.util.Log.d("CategoryRepository", "API Response: ${response.code()}, Success: ${response.isSuccessful}")
+
+        if (!response.isSuccessful) {
+            val errorBody = response.errorBody()?.string()
+            android.util.Log.e("CategoryRepository", "API Error: ${response.code()} - $errorBody")
+            throw Exception("Failed to fetch categories: ${response.code()}")
+        }
+
         val body = response.body()!! // Style Bryan: Force Unwrap !!
+        android.util.Log.d("CategoryRepository", "Categories data: ${body.data.size} items")
 
         return body.data.map { item ->
             Category(

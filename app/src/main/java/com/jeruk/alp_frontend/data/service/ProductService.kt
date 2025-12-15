@@ -28,8 +28,8 @@ interface ProductService {
         @Part("description") description: RequestBody,
         @Part("price") price: RequestBody,
         @Part("category_id") categoryId: RequestBody,
-        @Part("toko_ids") tokoIds: RequestBody,
-        @Part image: MultipartBody.Part?
+        @Part image: MultipartBody.Part,  // Required
+        @Part("toko_ids") tokoIds: RequestBody? = null  // Optional - omit if not needed
     ): Response<CreateProduct>
 
     @Multipart
@@ -41,7 +41,7 @@ interface ProductService {
         @Part("description") description: RequestBody,
         @Part("price") price: RequestBody,
         @Part("category_id") categoryId: RequestBody,
-        @Part("toko_ids") tokoIds: RequestBody,
+        @Part("toko_ids") tokoIds: RequestBody?,
         @Part image: MultipartBody.Part?
     ): Response<UpdateProductById>
 

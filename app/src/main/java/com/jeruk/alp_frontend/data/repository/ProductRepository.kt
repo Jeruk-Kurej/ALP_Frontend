@@ -57,28 +57,83 @@ class ProductRepository(
         tokoIds: String,
         imageFile: File?
     ): Product {
+        android.util.Log.d("ProductRepository", "Preparing product creation request")
+        android.util.Log.d("ProductRepository", "Token: ${if (token.isNotEmpty()) "Present" else "Empty"}")
+        android.util.Log.d("ProductRepository", "Product details: name=$name, price=$price")
+        android.util.Log.d("ProductRepository", "CategoryId: $categoryId (type: ${categoryId::class.simpleName})")
+        android.util.Log.d("ProductRepository", "TokoIds: ${if (tokoIds.isEmpty()) "Empty (will not send)" else tokoIds}")
+        android.util.Log.d("ProductRepository", "Image file: ${imageFile?.absolutePath}, exists: ${imageFile?.exists()}, size: ${imageFile?.length()}")
+
+        // Validate categoryId
+        if (categoryId <= 0) {
+            android.util.Log.e("ProductRepository", "Invalid categoryId: $categoryId")
+            throw Exception("Invalid category ID: $categoryId")
+        }
+
         val nameBody = name.toRequestBody("text/plain".toMediaTypeOrNull())
         val descBody = description.toRequestBody("text/plain".toMediaTypeOrNull())
         val priceBody = price.toString().toRequestBody("text/plain".toMediaTypeOrNull())
         val categoryBody = categoryId.toString().toRequestBody("text/plain".toMediaTypeOrNull())
-        val tokoIdsBody = tokoIds.toRequestBody("text/plain".toMediaTypeOrNull())
 
-        val imagePart = imageFile?.let {
-            val requestFile = it.asRequestBody("image/*".toMediaTypeOrNull())
-            MultipartBody.Part.createFormData("image", it.name, requestFile)
+        android.util.Log.d("ProductRepository", "CategoryId being sent as string: '${categoryId.toString()}'")
+
+        // Don't send toko_ids at all if not provided - backend might not accept "0"
+        val tokoIdsBody = if (tokoIds.isNotEmpty() && tokoIds != "0") {
+            tokoIds.toRequestBody("text/plain".toMediaTypeOrNull())
+        } else {
+            null  // Don't send the field - let backend use default
         }
 
-        val response = service.createProduct(
-            token = "Bearer $token",
-            name = nameBody,
-            description = descBody,
-            price = priceBody,
-            categoryId = categoryBody,
-            tokoIds = tokoIdsBody,
-            image = imagePart
-        )
+        // Make sure image exists - throw error if not provided
+        if (imageFile == null || !imageFile.exists()) {
+            android.util.Log.e("ProductRepository", "Image file is required but not provided or doesn't exist")
+            throw Exception("Image file is required")
+        }
 
-        val item = response.body()!!.data
+        // Create image part with proper mime type
+        val requestFile = imageFile.asRequestBody("image/jpeg".toMediaTypeOrNull())
+        val imagePart = MultipartBody.Part.createFormData("image", imageFile.name, requestFile)
+
+        android.util.Log.d("ProductRepository", "Sending request to API")
+        android.util.Log.d("ProductRepository", "=== REQUEST PARAMETERS ===")
+        android.util.Log.d("ProductRepository", "- Name: $name")
+        android.util.Log.d("ProductRepository", "- Description: $description")
+        android.util.Log.d("ProductRepository", "- Price: $price")
+        android.util.Log.d("ProductRepository", "- CategoryId: $categoryId")
+        android.util.Log.d("ProductRepository", "- Image: ${imageFile.name} (${imageFile.length()} bytes)")
+        android.util.Log.d("ProductRepository", "- TokoIds: ${if (tokoIdsBody == null) "null (not sent)" else tokoIds}")
+        android.util.Log.d("ProductRepository", "=========================")
+
+        val response = try {
+            service.createProduct(
+                token = "Bearer $token",
+                name = nameBody,
+                description = descBody,
+                price = priceBody,
+                categoryId = categoryBody,
+                image = imagePart,  // Image is required
+                tokoIds = tokoIdsBody  // Optional - will be null if not provided
+            )
+        } catch (e: Exception) {
+            android.util.Log.e("ProductRepository", "Exception during API call", e)
+            throw e
+        }
+
+        android.util.Log.d("ProductRepository", "Response code: ${response.code()}")
+        android.util.Log.d("ProductRepository", "Response successful: ${response.isSuccessful}")
+
+        if (!response.isSuccessful) {
+            val errorBody = response.errorBody()?.string()
+            android.util.Log.e("ProductRepository", "=== API ERROR DETAILS ===")
+            android.util.Log.e("ProductRepository", "Status Code: ${response.code()}")
+            android.util.Log.e("ProductRepository", "Error Body: $errorBody")
+            android.util.Log.e("ProductRepository", "Response Headers: ${response.headers()}")
+            throw Exception("Failed to create product: ${response.code()} - $errorBody")
+        }
+
+        val item = response.body()?.data ?: throw Exception("Empty response body")
+
+        android.util.Log.d("ProductRepository", "Product created successfully: ${item.name}, image: ${item.image}")
 
         return Product(
             id = item.id,
@@ -106,7 +161,13 @@ class ProductRepository(
         val descBody = description.toRequestBody("text/plain".toMediaTypeOrNull())
         val priceBody = price.toString().toRequestBody("text/plain".toMediaTypeOrNull())
         val categoryBody = categoryId.toString().toRequestBody("text/plain".toMediaTypeOrNull())
-        val tokoIdsBody = tokoIds.toRequestBody("text/plain".toMediaTypeOrNull())
+
+        // Only send tokoIds if it's not empty
+        val tokoIdsBody = if (tokoIds.isNotEmpty()) {
+            tokoIds.toRequestBody("text/plain".toMediaTypeOrNull())
+        } else {
+            null
+        }
 
         val imagePart = imageFile?.let {
             val requestFile = it.asRequestBody("image/*".toMediaTypeOrNull())

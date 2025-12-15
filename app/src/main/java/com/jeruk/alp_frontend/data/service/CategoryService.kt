@@ -10,8 +10,11 @@ import retrofit2.http.*
 
 interface CategoryService {
 
+    // Get all categories - requires authentication token (401 if not provided)
     @GET("categories")
-    suspend fun getAllCategories(): Response<GetAllCategories>
+    suspend fun getAllCategories(
+        @Header("Authorization") token: String
+    ): Response<GetAllCategories>
 
     @GET("categories/{categoryId}")
     suspend fun getCategoryById(

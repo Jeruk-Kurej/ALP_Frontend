@@ -28,14 +28,17 @@ class CategoryViewModel : ViewModel() { // <-- Constructor kosong sesuai style B
     private val _successMessage = MutableStateFlow<String?>(null)
     val successMessage: StateFlow<String?> = _successMessage
 
-    fun getAllCategories() {
+    fun getAllCategories(token: String) {
         viewModelScope.launch {
             _isLoading.value = true
             _errorMessage.value = null
             try {
-                val result = repository.getAllCategories()
+                android.util.Log.d("CategoryViewModel", "Fetching categories...")
+                val result = repository.getAllCategories(token)
+                android.util.Log.d("CategoryViewModel", "Fetched ${result.size} categories")
                 _categories.value = result
             } catch (e: Exception) {
+                android.util.Log.e("CategoryViewModel", "Error fetching categories: ${e.message}", e)
                 _errorMessage.value = e.message ?: "Gagal memuat kategori"
             } finally {
                 _isLoading.value = false
@@ -66,7 +69,7 @@ class CategoryViewModel : ViewModel() { // <-- Constructor kosong sesuai style B
                 val result = repository.createCategory(token, name)
                 _selectedCategory.value = result
                 _successMessage.value = "Category created successfully"
-                getAllCategories() // Refresh list otomatis
+                getAllCategories(token) // Refresh list otomatis with token
             } catch (e: Exception) {
                 _errorMessage.value = e.message
             } finally {
@@ -83,7 +86,7 @@ class CategoryViewModel : ViewModel() { // <-- Constructor kosong sesuai style B
                 val result = repository.updateCategory(token, categoryId, name)
                 _selectedCategory.value = result
                 _successMessage.value = "Category updated successfully"
-                getAllCategories() // Refresh list otomatis
+                getAllCategories(token) // Refresh list otomatis with token
             } catch (e: Exception) {
                 _errorMessage.value = e.message
             } finally {
@@ -99,7 +102,7 @@ class CategoryViewModel : ViewModel() { // <-- Constructor kosong sesuai style B
             try {
                 val message = repository.deleteCategory(token, categoryId)
                 _successMessage.value = message
-                getAllCategories() // Refresh list otomatis
+                getAllCategories(token) // Refresh list otomatis with token
             } catch (e: Exception) {
                 _errorMessage.value = e.message
             } finally {
