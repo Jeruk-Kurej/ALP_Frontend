@@ -31,6 +31,7 @@ import androidx.navigation.NavController
 import coil.compose.AsyncImage
 import com.jeruk.alp_frontend.ui.viewmodel.ProductViewModel
 import com.jeruk.alp_frontend.ui.viewmodel.CategoryViewModel
+import com.jeruk.alp_frontend.utils.TokenUtils
 import java.io.File
 import java.io.FileOutputStream
 
@@ -55,10 +56,59 @@ fun AddProductView(
     val categories by categoryViewModel.categories.collectAsState()
     val isLoading by productViewModel.isLoading.collectAsState()
     val productState by productViewModel.productState.collectAsState()
+    val categoryErrorMessage by categoryViewModel.errorMessage.collectAsState()
 
     // Fetch categories when view loads
     LaunchedEffect(Unit) {
-        categoryViewModel.getAllCategories(token)
+        android.util.Log.d("AddProductView", "=== TOKEN DEBUG INFO ===")
+        android.util.Log.d("AddProductView", "Token received: ${if (token.isNotEmpty()) "Present (length: ${token.length})" else "EMPTY"}")
+
+        if (token.isNotEmpty()) {
+            // Decode and inspect the JWT token
+            val payload = TokenUtils.decodeJwt(token)
+            if (payload != null) {
+                android.util.Log.d("AddProductView", "Token Payload:")
+                android.util.Log.d("AddProductView", "  - User ID: ${payload.userId}")
+                android.util.Log.d("AddProductView", "  - Username: ${payload.username}")
+                android.util.Log.d("AddProductView", "  - Role: ${payload.role}")
+                android.util.Log.d("AddProductView", "  - Issued At: ${payload.iat}")
+                android.util.Log.d("AddProductView", "  - Expires At: ${payload.exp}")
+
+                // Check if token is expired
+                val isExpired = TokenUtils.isTokenExpired(token)
+                android.util.Log.d("AddProductView", "  - Is Expired: $isExpired")
+
+                // Check if user is admin
+                val isAdmin = TokenUtils.isAdmin(token)
+                android.util.Log.d("AddProductView", "  - Is Admin: $isAdmin")
+
+                if (isExpired) {
+                    android.util.Log.e("AddProductView", "TOKEN IS EXPIRED! User needs to re-login.")
+                    Toast.makeText(context, "Session expired. Please login again.", Toast.LENGTH_LONG).show()
+                } else if (!isAdmin) {
+                    android.util.Log.w("AddProductView", "USER IS NOT ADMIN! This might cause 403 errors.")
+                    Toast.makeText(context, "Warning: You may not have admin access", Toast.LENGTH_LONG).show()
+                }
+            } else {
+                android.util.Log.e("AddProductView", "Failed to decode JWT token!")
+            }
+
+            android.util.Log.d("AddProductView", "Token value (first 50 chars): ${token.take(50)}...")
+            android.util.Log.d("AddProductView", "========================")
+
+            // Fetch categories
+            categoryViewModel.getAllCategories(token)
+        } else {
+            android.util.Log.e("AddProductView", "Cannot fetch categories: Token is empty!")
+            Toast.makeText(context, "Authentication required. Please login.", Toast.LENGTH_LONG).show()
+        }
+    }
+
+    // Show category error if any
+    LaunchedEffect(categoryErrorMessage) {
+        categoryErrorMessage?.let { error ->
+            Toast.makeText(context, "Error loading categories: $error", Toast.LENGTH_LONG).show()
+        }
     }
 
     // Set default category when categories are loaded

@@ -22,13 +22,29 @@ class AuthRepository(private val service: AuthService) {
     }
 
     suspend fun loginUser(username: String, pass: String): User {
+        android.util.Log.d("AuthRepository", "=== LOGIN REQUEST ===")
+        android.util.Log.d("AuthRepository", "Username: $username")
+
         val request = LoginRequest(username = username, password = pass)
         val response = service.loginUser(request)
 
+        android.util.Log.d("AuthRepository", "Login Response Code: ${response.code()}")
+        android.util.Log.d("AuthRepository", "Login Successful: ${response.isSuccessful}")
+
+        if (!response.isSuccessful) {
+            val errorBody = response.errorBody()?.string()
+            android.util.Log.e("AuthRepository", "Login Failed: ${response.code()} - $errorBody")
+            throw Exception("Login failed: ${response.code()}")
+        }
+
         val body = response.body()!!
+        val token = body.data.token ?: ""
+
+        android.util.Log.d("AuthRepository", "Token received: ${if (token.isNotEmpty()) "YES (length: ${token.length}, first 20 chars: ${token.take(20)}...)" else "NO/EMPTY"}")
+        android.util.Log.d("AuthRepository", "Full token: $token")
 
         return User(
-            token = body.data.token ?: "",
+            token = token,
             username = username ?: ""
         )
     }

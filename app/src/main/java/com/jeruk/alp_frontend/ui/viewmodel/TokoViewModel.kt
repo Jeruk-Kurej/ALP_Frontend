@@ -1,102 +1,90 @@
 package com.jeruk.alp_frontend.ui.viewmodel
 
-import android.util.Log
+import androidx.lifecycle.LiveData
+import androidx.lifecycle.MutableLiveData
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
-import com.jeruk.alp_frontend.data.container.AppContainer
+import com.jeruk.alp_frontend.data.repository.TokoRepository
 import com.jeruk.alp_frontend.ui.model.Toko
-import kotlinx.coroutines.flow.MutableStateFlow
-import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.launch
 import java.io.File
 
-class TokoViewModel : ViewModel() {
-    private val repository = AppContainer().tokoRepository
+class TokoViewModel(
+    private val repository: TokoRepository
+) : ViewModel() {
 
-    private val _isLoading = MutableStateFlow(false)
-    val isLoading: StateFlow<Boolean> = _isLoading
+    private val _tokos = MutableLiveData<List<Toko>>()
+    val tokos: LiveData<List<Toko>> = _tokos
 
-    private val _isSuccess = MutableStateFlow(false)
-    val isSuccess: StateFlow<Boolean> = _isSuccess
+    private val _selectedToko = MutableLiveData<Toko>()
+    val selectedToko: LiveData<Toko> = _selectedToko
 
-    private val _errorMessage = MutableStateFlow<String?>(null)
-    val errorMessage: StateFlow<String?> = _errorMessage
+    private val _isLoading = MutableLiveData<Boolean>()
+    val isLoading: LiveData<Boolean> = _isLoading
 
-    private val _tokos = MutableStateFlow<List<Toko>>(emptyList())
-    val tokos: StateFlow<List<Toko>> = _tokos
+    private val _errorMessage = MutableLiveData<String?>()
+    val errorMessage: LiveData<String?> = _errorMessage
 
-    private val _currentToko = MutableStateFlow<Toko?>(null)
-    val currentToko: StateFlow<Toko?> = _currentToko
-
-    fun getTokoById(token: String, id: Int) {
-        viewModelScope.launch {
-            _isLoading.value = true
-            try {
-                _currentToko.value = repository.getTokoById(token, id)
-            } catch (e: Exception) {
-                Log.e("TOKO_VM", "Error: ${e.message}")
-            } finally {
-                _isLoading.value = false
-            }
-        }
-    }
-
-    fun createToko(token: String, name: String, description: String, location: String, imageFile: File?) {
-        viewModelScope.launch {
-            _isLoading.value = true
-            _errorMessage.value = null
-            _isSuccess.value = false
-            try {
-                repository.createToko(token, name, description, location, imageFile)
-                _isSuccess.value = true
-            } catch (e: Exception) {
-                _errorMessage.value = e.message
-            } finally {
-                _isLoading.value = false
-            }
-        }
-    }
-
-    fun updateToko(token: String, id: Int, name: String, desc: String, loc: String, file: File?) {
-        viewModelScope.launch {
-            _isLoading.value = true
-            _errorMessage.value = null
-            _isSuccess.value = false
-            try {
-                repository.updateToko(token, id, name, desc, loc, file)
-                _isSuccess.value = true
-            } catch (e: Exception) {
-                _errorMessage.value = e.message
-                _isSuccess.value = false
-            } finally {
-                _isLoading.value = false
-            }
-        }
-    }
-
-    fun clearState() {
-        _isSuccess.value = false
-        _errorMessage.value = null
-        _currentToko.value = null
-    }
+    private val _successMessage = MutableLiveData<String?>()
+    val successMessage: LiveData<String?> = _successMessage
 
     fun getMyTokos(token: String) {
         viewModelScope.launch {
             _isLoading.value = true
-            try { _tokos.value = repository.getMyTokos(token) }
-            catch (e: Exception) { e.printStackTrace() }
-            finally { _isLoading.value = false }
+            _errorMessage.value = null
+            try {
+                val result = repository.getMyTokos(token)
+                _tokos.value = result
+            } catch (e: Exception) {
+                _errorMessage.value = e.message
+            } finally {
+                _isLoading.value = false
+            }
         }
     }
 
-    fun deleteToko(token: String, id: Int) {
+    fun getTokoById(tokoId: Int) {
         viewModelScope.launch {
             _isLoading.value = true
+            _errorMessage.value = null
             try {
-                repository.deleteToko(token, id)
-                getMyTokos(token)
-            } catch (e: Exception) { _errorMessage.value = e.message }
-            finally { _isLoading.value = false }
+                val result = repository.getTokoById(tokoId)
+                _selectedToko.value = result
+            } catch (e: Exception) {
+                _errorMessage.value = e.message
+            } finally {
+                _isLoading.value = false
+            }
         }
+    }
+
+    fun createToko(
+        token: String,
+        name: String,
+        description: String,
+        location: String,
+        imageFile: File?
+    ) {
+        viewModelScope.launch {
+            _isLoading.value = true
+            _errorMessage.value = null
+            try {
+                val result = repository.createToko(
+                    token, name, description, location, imageFile
+                )
+                _selectedToko.value = result
+                _successMessage.value = "Toko created successfully"
+                getMyTokos(token) // Refresh the list
+            } catch (e: Exception) {
+                _errorMessage.value = e.message
+            } finally {
+                _isLoading.value = false
+            }
+        }
+    }
+
+    fun clearMessages() {
+        _errorMessage.value = null
+        _successMessage.value = null
     }
 }

@@ -6,5 +6,6 @@ data class Toko(
     val description: String = "",
     val address: String = "",
     val imageUrl: String = "",
-    val isOpen: Boolean = false
+    val isOpen: Boolean = false,
+    val ownerId: Int = 0  // Added to support per-user tokos
 )

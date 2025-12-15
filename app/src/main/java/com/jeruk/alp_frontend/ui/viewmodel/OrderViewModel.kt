@@ -8,10 +8,10 @@ import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.launch
 
-class OrderViewModel : ViewModel() { // <-- Constructor kosong (No Factory)
+class OrderViewModel : ViewModel() {
 
-    // Inisialisasi repository langsung dari Container sesuai style Bryan
-    private val repository = AppContainer().orderRepository
+    // FIXED: Use singleton AppContainer to prevent data bleeding across users
+    private val repository = AppContainer.orderRepository
 
     private val _orders = MutableStateFlow<List<Order>>(emptyList())
     val orders: StateFlow<List<Order>> = _orders
@@ -86,6 +86,18 @@ class OrderViewModel : ViewModel() { // <-- Constructor kosong (No Factory)
     }
 
     fun clearMessages() {
+        _errorMessage.value = null
+        _successMessage.value = null
+    }
+
+    /**
+     * Clear all cached data - call this on logout to prevent data bleeding to next user
+     */
+    fun clearData() {
+        android.util.Log.d("OrderViewModel", "Clearing all order data")
+        _orders.value = emptyList()
+        _selectedOrder.value = null
+        _isLoading.value = false
         _errorMessage.value = null
         _successMessage.value = null
     }

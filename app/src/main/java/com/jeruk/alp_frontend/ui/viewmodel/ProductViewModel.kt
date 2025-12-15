@@ -43,9 +43,12 @@ class ProductViewModel : ViewModel() {
             _isLoading.value = true
             _errorMessage.value = null
             try {
+                android.util.Log.d("ProductViewModel", "Fetching all products...")
                 val result = repository.getAllProducts()
                 _products.value = result
+                android.util.Log.d("ProductViewModel", "Successfully fetched ${result.size} products")
             } catch (e: Exception) {
+                android.util.Log.e("ProductViewModel", "Error fetching products", e)
                 _errorMessage.value = e.message
             } finally {
                 _isLoading.value = false

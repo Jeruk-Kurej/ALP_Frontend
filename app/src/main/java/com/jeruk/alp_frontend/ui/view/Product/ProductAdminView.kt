@@ -47,7 +47,9 @@ fun ProductAdminView(
     val context = LocalContext.current
 
     // Fetch products when the view is displayed
-    LaunchedEffect(Unit) {
+    // This will run every time we navigate back to this screen
+    LaunchedEffect(key1 = navController.currentBackStackEntry) {
+        android.util.Log.d("ProductAdminView", "Screen entered/resumed, refreshing products...")
         productViewModel.getAllProducts()
     }
 

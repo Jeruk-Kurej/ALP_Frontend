@@ -33,6 +33,7 @@ fun AddCategoryView(
 ) {
     val context = LocalContext.current
     var categoryName by remember { mutableStateOf("") }
+    var categoryDescription by remember { mutableStateOf("") }
 
     val isLoading by categoryViewModel.isLoading.collectAsState()
     val successMessage by categoryViewModel.successMessage.collectAsState()
@@ -146,6 +147,64 @@ fun AddCategoryView(
                 }
             }
 
+            // Deskripsi Card (Optional - for UI only, not sent to backend)
+            Card(
+                modifier = Modifier.fillMaxWidth(),
+                shape = RoundedCornerShape(16.dp),
+                colors = CardDefaults.cardColors(containerColor = Color.White),
+                elevation = CardDefaults.cardElevation(2.dp)
+            ) {
+                Column(
+                    modifier = Modifier.padding(20.dp),
+                    verticalArrangement = Arrangement.spacedBy(12.dp)
+                ) {
+                    Row(
+                        horizontalArrangement = Arrangement.spacedBy(2.dp)
+                    ) {
+                        Text(
+                            text = "Deskripsi",
+                            fontSize = 16.sp,
+                            fontWeight = FontWeight.SemiBold
+                        )
+                        Text(
+                            text = "*",
+                            fontSize = 16.sp,
+                            fontWeight = FontWeight.SemiBold,
+                            color = Color.Red
+                        )
+                    }
+
+                    OutlinedTextField(
+                        value = categoryDescription,
+                        onValueChange = { categoryDescription = it },
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .height(150.dp),
+                        placeholder = {
+                            Text(
+                                "Deskripsi lengkap tentang kategori ini...",
+                                fontSize = 14.sp,
+                                color = Color.Gray
+                            )
+                        },
+                        colors = OutlinedTextFieldDefaults.colors(
+                            focusedContainerColor = Color(0xFFF5F5F7),
+                            unfocusedContainerColor = Color(0xFFF5F5F7),
+                            focusedBorderColor = Color(0xFFE0E0E0),
+                            unfocusedBorderColor = Color(0xFFE0E0E0)
+                        ),
+                        shape = RoundedCornerShape(8.dp),
+                        maxLines = 6
+                    )
+
+                    Text(
+                        text = "Jelaskan jenis produk yang termasuk dalam kategori ini",
+                        fontSize = 12.sp,
+                        color = Color.Gray,
+                        lineHeight = 16.sp
+                    )
+                }
+            }
 
             Spacer(modifier = Modifier.height(8.dp))
 
@@ -182,13 +241,19 @@ fun AddCategoryView(
                             return@Button
                         }
 
+                        if (categoryDescription.isBlank()) {
+                            Toast.makeText(context, "Deskripsi kategori tidak boleh kosong", Toast.LENGTH_SHORT).show()
+                            return@Button
+                        }
+
                         // Create category - only name is sent to backend
+                        // Description is for UI purposes only
                         categoryViewModel.createCategory(
                             token = token,
                             name = categoryName
                         )
                     },
-                    enabled = !isLoading && categoryName.isNotBlank(),
+                    enabled = !isLoading && categoryName.isNotBlank() && categoryDescription.isNotBlank(),
                     modifier = Modifier
                         .weight(1f)
                         .height(52.dp),

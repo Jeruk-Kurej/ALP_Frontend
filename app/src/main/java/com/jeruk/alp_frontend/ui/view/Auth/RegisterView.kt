@@ -57,14 +57,18 @@ fun RegisterView(
     var confirmPassword by remember { mutableStateOf("") }
     var passwordVisible by remember { mutableStateOf(false) }
     var confirmPasswordVisible by remember { mutableStateOf(false) }
+    var hasAttemptedRegister by remember { mutableStateOf(false) }
 
     LaunchedEffect(userState) {
-        if (userState.token.isNotEmpty()) {
+        // FIXED: Only auto-navigate if user has actually clicked register button
+        if (userState.token.isNotEmpty() && hasAttemptedRegister) {
             Toast.makeText(context, "Register Berhasil!", Toast.LENGTH_SHORT).show()
             onRegisterSuccess()
+            hasAttemptedRegister = false
         }
         if (userState.isError) {
             Toast.makeText(context, userState.errorMessage, Toast.LENGTH_LONG).show()
+            hasAttemptedRegister = false
         }
     }
 
@@ -177,6 +181,7 @@ fun RegisterView(
                 Button(
                     onClick = {
                         if (password == confirmPassword) {
+                            hasAttemptedRegister = true
                             authViewModel.register(username, email, password)
                         } else {
                             Toast.makeText(context, "Password tidak cocok!", Toast.LENGTH_SHORT).show()

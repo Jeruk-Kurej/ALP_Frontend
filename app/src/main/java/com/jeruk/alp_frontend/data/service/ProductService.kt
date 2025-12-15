@@ -27,7 +27,7 @@ interface ProductService {
         @Part("name") name: RequestBody,
         @Part("description") description: RequestBody,
         @Part("price") price: RequestBody,
-        @Part("categoryId") categoryId: RequestBody,  // Changed from category_id to categoryId
+        @Part("category_id") categoryId: RequestBody,
         @Part image: MultipartBody.Part,
         @Part("toko_ids") tokoIds: RequestBody? = null  // Optional - omit if null
     ): Response<CreateProduct>
@@ -40,7 +40,7 @@ interface ProductService {
         @Part("name") name: RequestBody,
         @Part("description") description: RequestBody,
         @Part("price") price: RequestBody,
-        @Part("categoryId") categoryId: RequestBody,  // Changed from category_id to categoryId
+        @Part("category_id") categoryId: RequestBody,
         @Part("toko_ids") tokoIds: RequestBody?,
         @Part image: MultipartBody.Part?
     ): Response<UpdateProductById>

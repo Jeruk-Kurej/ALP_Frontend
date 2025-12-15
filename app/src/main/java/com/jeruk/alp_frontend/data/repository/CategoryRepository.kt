@@ -9,14 +9,36 @@ class CategoryRepository(
 
     // Fetch all categories - requires authentication token (fixes 401 error)
     suspend fun getAllCategories(token: String): List<Category> {
+        android.util.Log.d("CategoryRepository", "=== GET ALL CATEGORIES ===")
+        android.util.Log.d("CategoryRepository", "Token: ${if (token.isNotEmpty()) "Present (${token.take(20)}...)" else "EMPTY"}")
+
+        if (token.isEmpty()) {
+            android.util.Log.e("CategoryRepository", "Token is empty!")
+            throw Exception("Authentication required: Token is empty")
+        }
+
         android.util.Log.d("CategoryRepository", "Calling API to get all categories")
         val response = service.getAllCategories("Bearer $token")
         android.util.Log.d("CategoryRepository", "API Response: ${response.code()}, Success: ${response.isSuccessful}")
 
         if (!response.isSuccessful) {
             val errorBody = response.errorBody()?.string()
-            android.util.Log.e("CategoryRepository", "API Error: ${response.code()} - $errorBody")
-            throw Exception("Failed to fetch categories: ${response.code()}")
+            android.util.Log.e("CategoryRepository", "=== API ERROR ===")
+            android.util.Log.e("CategoryRepository", "Status Code: ${response.code()}")
+            android.util.Log.e("CategoryRepository", "Error Body: $errorBody")
+            android.util.Log.e("CategoryRepository", "Response Headers: ${response.headers()}")
+
+            val errorMessage = when (response.code()) {
+                401 -> "Unauthorized: Token tidak valid atau sudah expired. Silakan login kembali."
+                403 -> "Forbidden: Akses ditolak. Kemungkinan:\n" +
+                       "1. Token Anda sudah expired - login ulang\n" +
+                       "2. Anda tidak memiliki role admin\n" +
+                       "3. Token tidak valid"
+                404 -> "Categories endpoint not found"
+                500 -> "Server error: Backend sedang bermasalah"
+                else -> "Failed to fetch categories: ${response.code()}"
+            }
+            throw Exception(errorMessage)
         }
 
         val body = response.body()!! // Style Bryan: Force Unwrap !!
