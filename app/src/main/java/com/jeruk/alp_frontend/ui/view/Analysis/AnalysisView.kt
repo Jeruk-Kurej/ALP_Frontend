@@ -1,4 +1,4 @@
-package com.jeruk.alp_frontend.ui.view
+package com.jeruk.alp_frontend.ui.view.Analysis
 
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.*
