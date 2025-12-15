@@ -8,7 +8,9 @@ import retrofit2.converter.gson.GsonConverterFactory
 
 class AppContainer {
     companion object {
-        private const val ROOT_URL = "http://10.152.62.164:3000"
+        // Use 10.0.2.2 for Android Emulator (points to host machine's localhost)
+        // Use 10.0.187.183 for Physical Device (your Mac's actual IP on network)
+        private const val ROOT_URL = "http://10.0.2.2:3000"
         private const val BASE_URL = "$ROOT_URL/api/"
     }
 
