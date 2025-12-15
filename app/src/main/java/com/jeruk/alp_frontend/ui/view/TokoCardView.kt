@@ -18,6 +18,7 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.jeruk.alp_frontend.ui.model.Toko
 
+@OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun TokoCardView(
     toko: Toko,
@@ -25,8 +26,7 @@ fun TokoCardView(
     onClick: () -> Unit
 ) {
     Card(
-        modifier = modifier
-            .fillMaxWidth(),
+        modifier = modifier.fillMaxWidth(),
         shape = RoundedCornerShape(20.dp),
         colors = CardDefaults.cardColors(containerColor = Color.White),
         elevation = CardDefaults.cardElevation(defaultElevation = 2.dp),
@@ -36,7 +36,7 @@ fun TokoCardView(
             modifier = Modifier.padding(16.dp),
             verticalAlignment = Alignment.CenterVertically
         ) {
-            // --- ICON BOX (Style Hijau Muda) ---
+            // Icon Box
             Box(
                 modifier = Modifier
                     .size(56.dp)
@@ -54,7 +54,6 @@ fun TokoCardView(
 
             Spacer(modifier = Modifier.width(16.dp))
 
-            // --- INFO TOKO ---
             Column(modifier = Modifier.weight(1f)) {
                 Text(
                     text = toko.name,
@@ -63,53 +62,20 @@ fun TokoCardView(
                     color = Color(0xFF1F2937)
                 )
                 Text(
-                    text = toko.description ?: "Kedai kopi modern...",
+                    text = toko.description,
                     color = Color.Gray,
                     fontSize = 13.sp,
                     maxLines = 1
                 )
-
-                Spacer(modifier = Modifier.height(8.dp))
-
-                // Lokasi
+                Spacer(modifier = Modifier.height(4.dp))
                 Row(verticalAlignment = Alignment.CenterVertically) {
-                    Icon(
-                        Icons.Default.LocationOn,
-                        null,
-                        tint = Color.LightGray,
-                        modifier = Modifier.size(14.dp)
-                    )
+                    Icon(Icons.Default.LocationOn, null, tint = Color.LightGray, modifier = Modifier.size(14.dp))
                     Spacer(modifier = Modifier.width(4.dp))
-                    Text(
-                        text = toko.address ?: "Alamat belum diatur",
-                        color = Color.Gray,
-                        fontSize = 11.sp
-                    )
-                }
-
-                // Badge Buka (Style Bryan)
-                if (toko.isOpen) {
-                    Spacer(modifier = Modifier.height(6.dp))
-                    Surface(
-                        color = Color(0xFFD1FAE5),
-                        shape = RoundedCornerShape(6.dp)
-                    ) {
-                        Text(
-                            text = "Buka",
-                            modifier = Modifier.padding(horizontal = 8.dp, vertical = 2.dp),
-                            color = Color(0xFF065F46),
-                            fontSize = 10.sp,
-                            fontWeight = FontWeight.Bold
-                        )
-                    }
+                    Text(text = toko.address, color = Color.Gray, fontSize = 11.sp)
                 }
             }
 
-            Icon(
-                imageVector = Icons.Default.ChevronRight,
-                contentDescription = null,
-                tint = Color.LightGray
-            )
+            Icon(Icons.Default.ChevronRight, null, tint = Color.LightGray)
         }
     }
 }
