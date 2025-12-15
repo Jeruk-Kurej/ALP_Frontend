@@ -1,5 +1,6 @@
-package com.jeruk.alp_frontend.ui.view
+package com.jeruk.alp_frontend.ui.view.Toko
 
+import android.content.Context
 import android.net.Uri
 import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.contract.ActivityResultContracts
@@ -136,7 +137,7 @@ fun CreateTokoView(
 // Helper Uri to File
 // Di CreateTokoView.kt atau di file Util
 // Perbaiki fungsi uriToFile di CreateTokoView.kt
-fun uriToFile(context: android.content.Context, uri: Uri): File {
+fun uriToFile(context: Context, uri: Uri): File {
     val contentResolver = context.contentResolver
 
     // Ambil ekstensi asli dari Uri
@@ -151,7 +152,7 @@ fun uriToFile(context: android.content.Context, uri: Uri): File {
     val inputStream = contentResolver.openInputStream(uri)
     // PASTIKAN ADA EKSTENSI DI NAMA FILE (Penting bagi Multer!)
     val tempFile = File(context.cacheDir, "IMG_${System.currentTimeMillis()}.$extension")
-    val outputStream = java.io.FileOutputStream(tempFile)
+    val outputStream = FileOutputStream(tempFile)
 
     inputStream?.use { input ->
         outputStream.use { output ->

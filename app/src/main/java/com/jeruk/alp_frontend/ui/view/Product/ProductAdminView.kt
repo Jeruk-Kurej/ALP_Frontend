@@ -1,4 +1,4 @@
-package com.jeruk.alp_frontend.ui.view
+package com.jeruk.alp_frontend.ui.view.Product
 
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.*
@@ -14,9 +14,11 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.navigation.NavController
+import com.jeruk.alp_frontend.ui.view.Analysis.SummaryMiniCard
 
 @Composable
 fun ProductAdminView(navController: NavController) {
@@ -74,7 +76,7 @@ fun ProductAdminView(navController: NavController) {
                             text = "Daftar semua produk akan tampil di sini untuk dikelola (Edit/Hapus).",
                             color = Color.Gray,
                             fontSize = 13.sp,
-                            textAlign = androidx.compose.ui.text.style.TextAlign.Center
+                            textAlign = TextAlign.Center
                         )
                     }
                 }

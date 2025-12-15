@@ -26,8 +26,13 @@ import androidx.navigation.NavGraph.Companion.findStartDestination
 import androidx.navigation.NavHostController
 import androidx.navigation.compose.*
 import com.jeruk.alp_frontend.ui.view.*
+import com.jeruk.alp_frontend.ui.view.Analysis.AnalysisPageView
 import com.jeruk.alp_frontend.ui.view.Auth.LoginView
-import com.jeruk.alp_frontend.ui.view.Auth.RegisterView
+import com.jeruk.alp_frontend.ui.view.Setting.SettingAdminView
+import com.jeruk.alp_frontend.ui.view.Setting.SettingView
+import com.jeruk.alp_frontend.ui.view.Toko.CreateTokoView
+import com.jeruk.alp_frontend.ui.view.Toko.TokoAdminView
+import com.jeruk.alp_frontend.ui.view.Toko.TokoView
 import com.jeruk.alp_frontend.ui.viewmodel.AuthViewModel
 
 // 1. Model untuk Item di Bottom Bar
@@ -140,9 +145,28 @@ fun AppRoute() {
             composable(AppView.Analysis.name) { AnalysisPageView(navController) }
             composable(AppView.Setting.name) {
                 if (isUserInAdminMode) {
-                    SettingAdminView(navController, onLogout = { navController.navigate(AppView.Welcoming.name) { popUpTo(0) { inclusive = true } } }, onExitAdminMode = { isUserInAdminMode = false; navController.navigate(AppView.Home.name) })
+                    SettingAdminView(
+                        navController,
+                        onLogout = {
+                            navController.navigate(AppView.Welcoming.name) {
+                                popUpTo(0) {
+                                    inclusive = true
+                                }
+                            }
+                        },
+                        onExitAdminMode = {
+                            isUserInAdminMode = false; navController.navigate(AppView.Home.name)
+                        })
                 } else {
-                    SettingView(navController, onLogout = { navController.navigate(AppView.Welcoming.name) { popUpTo(0) { inclusive = true } } })
+                    SettingView(
+                        navController,
+                        onLogout = {
+                            navController.navigate(AppView.Welcoming.name) {
+                                popUpTo(0) {
+                                    inclusive = true
+                                }
+                            }
+                        })
                 }
             }
         }

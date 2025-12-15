@@ -1,4 +1,4 @@
-package com.jeruk.alp_frontend.ui.view
+package com.jeruk.alp_frontend.ui.view.Setting
 
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
@@ -12,13 +12,13 @@ import androidx.compose.material.icons.outlined.Language
 import androidx.compose.material.icons.outlined.Payments
 import androidx.compose.material.icons.outlined.Shield
 import androidx.compose.ui.window.Dialog
-import androidx.compose.ui.window.DialogProperties
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
@@ -113,7 +113,7 @@ fun SettingView(
 // --- KOMPONEN PENDUKUNG (HIG STYLE) ---
 
 @Composable
-fun SettingCard(title: String, sub: String, icon: androidx.compose.ui.graphics.vector.ImageVector, iconBg: Color, iconTint: Color, content: @Composable ColumnScope.() -> Unit) {
+fun SettingCard(title: String, sub: String, icon: ImageVector, iconBg: Color, iconTint: Color, content: @Composable ColumnScope.() -> Unit) {
     Card(modifier = Modifier.fillMaxWidth(), shape = RoundedCornerShape(24.dp), colors = CardDefaults.cardColors(containerColor = Color.White), elevation = CardDefaults.cardElevation(2.dp)) {
         Column(modifier = Modifier.padding(20.dp), verticalArrangement = Arrangement.spacedBy(16.dp)) {
             Row(verticalAlignment = Alignment.CenterVertically) {
@@ -132,7 +132,7 @@ fun SettingCard(title: String, sub: String, icon: androidx.compose.ui.graphics.v
 }
 
 @Composable
-fun ActionItem(title: String, sub: String, icon: androidx.compose.ui.graphics.vector.ImageVector, iconBg: Color, iconTint: Color, onClick: () -> Unit) {
+fun ActionItem(title: String, sub: String, icon: ImageVector, iconBg: Color, iconTint: Color, onClick: () -> Unit) {
     Card(modifier = Modifier.fillMaxWidth().clickable { onClick() }, shape = RoundedCornerShape(16.dp), colors = CardDefaults.cardColors(containerColor = Color.White), elevation = CardDefaults.cardElevation(1.dp)) {
         Row(modifier = Modifier.padding(16.dp), verticalAlignment = Alignment.CenterVertically) {
             Box(modifier = Modifier.size(40.dp).clip(RoundedCornerShape(10.dp)).background(iconBg), contentAlignment = Alignment.Center) {
