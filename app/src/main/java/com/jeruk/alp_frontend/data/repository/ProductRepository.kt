@@ -13,9 +13,17 @@ class ProductRepository(
     private val baseUrl: String
 ) {
 
-    suspend fun getAllProducts(): List<Product> {
-        val response = service.getAllProducts()
-        val body = response.body()!! // Style Bryan: Force Unwrap !!
+    suspend fun getAllProducts(token: String): List<Product> {
+        android.util.Log.d("ProductRepository", "Getting all products with token")
+        val response = service.getAllProducts("Bearer $token")
+
+        if (!response.isSuccessful) {
+            android.util.Log.e("ProductRepository", "Failed to get products: ${response.code()}")
+            throw Exception("Failed to load products: ${response.code()}")
+        }
+
+        val body = response.body()!!
+        android.util.Log.d("ProductRepository", "Products received: ${body.data.size} items")
 
         return body.data.map { item ->
             Product(

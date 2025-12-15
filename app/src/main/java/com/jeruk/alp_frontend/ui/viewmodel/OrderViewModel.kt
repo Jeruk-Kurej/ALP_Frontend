@@ -11,7 +11,7 @@ import kotlinx.coroutines.launch
 class OrderViewModel : ViewModel() { // <-- Constructor kosong (No Factory)
 
     // Inisialisasi repository langsung dari Container sesuai style Bryan
-    private val repository = AppContainer().orderRepository
+    private val repository = AppContainer.orderRepository
 
     private val _orders = MutableStateFlow<List<Order>>(emptyList())
     val orders: StateFlow<List<Order>> = _orders

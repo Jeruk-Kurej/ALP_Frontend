@@ -17,8 +17,8 @@ data class ProductState(
 
 class ProductViewModel : ViewModel() {
 
-    // Inisialisasi repository langsung dari Container sesuai style kamu
-    private val repository = AppContainer().productRepository
+    // Inisialisasi repository langsung dari singleton AppContainer
+    private val repository = AppContainer.productRepository
 
     private val _products = MutableStateFlow<List<Product>>(emptyList())
     val products: StateFlow<List<Product>> = _products
@@ -38,15 +38,18 @@ class ProductViewModel : ViewModel() {
     private val _successMessage = MutableStateFlow<String?>(null)
     val successMessage: StateFlow<String?> = _successMessage
 
-    fun getAllProducts() {
+    fun getAllProducts(token: String) {
         viewModelScope.launch {
             _isLoading.value = true
             _errorMessage.value = null
             try {
-                val result = repository.getAllProducts()
+                android.util.Log.d("ProductViewModel", "Fetching products with token")
+                val result = repository.getAllProducts(token)
                 _products.value = result
+                android.util.Log.d("ProductViewModel", "Products loaded: ${result.size} items")
             } catch (e: Exception) {
                 _errorMessage.value = e.message
+                android.util.Log.e("ProductViewModel", "Error loading products: ${e.message}", e)
             } finally {
                 _isLoading.value = false
             }
@@ -92,7 +95,7 @@ class ProductViewModel : ViewModel() {
                 _selectedProduct.value = result
                 _successMessage.value = "Product created successfully"
                 _productState.value = ProductState(isSuccess = true)
-                getAllProducts() // Refresh the list
+                getAllProducts(token) // Refresh the list with token
             } catch (e: retrofit2.HttpException) {
                 val errorBody = e.response()?.errorBody()?.string()
                 val errorMsg = "HTTP ${e.code()}: ${errorBody ?: e.message()}"
@@ -134,7 +137,7 @@ class ProductViewModel : ViewModel() {
                 )
                 _selectedProduct.value = result
                 _successMessage.value = "Product updated successfully"
-                getAllProducts() // Refresh the list
+                getAllProducts(token) // Refresh the list with token
             } catch (e: Exception) {
                 _errorMessage.value = e.message
             } finally {
@@ -150,7 +153,7 @@ class ProductViewModel : ViewModel() {
             try {
                 val message = repository.deleteProduct(token, productId)
                 _successMessage.value = message
-                getAllProducts() // Refresh the list
+                getAllProducts(token) // Refresh the list with token
             } catch (e: Exception) {
                 _errorMessage.value = e.message
             } finally {

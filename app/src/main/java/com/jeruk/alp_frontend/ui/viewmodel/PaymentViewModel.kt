@@ -11,7 +11,7 @@ import kotlinx.coroutines.launch
 class PaymentViewModel : ViewModel() { // <-- Constructor kosong sesuai style Bryan
 
     // Inisialisasi repository langsung dari Container
-    private val repository = AppContainer().paymentRepository
+    private val repository = AppContainer.paymentRepository
 
     private val _payments = MutableStateFlow<List<Payment>>(emptyList())
     val payments: StateFlow<List<Payment>> = _payments

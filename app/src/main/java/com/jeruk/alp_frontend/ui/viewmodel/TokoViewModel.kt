@@ -11,7 +11,7 @@ import kotlinx.coroutines.launch
 import java.io.File
 
 class TokoViewModel : ViewModel() {
-    private val repository = AppContainer().tokoRepository
+    private val repository = AppContainer.tokoRepository
 
     private val _isLoading = MutableStateFlow(false)
     val isLoading: StateFlow<Boolean> = _isLoading
