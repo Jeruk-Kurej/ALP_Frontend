@@ -12,7 +12,10 @@ interface TokoService {
     suspend fun getAllMyTokos(@Header("Authorization") token: String): Response<GetAllTokoResponse>
 
     @GET("tokos/{tokoId}")
-    suspend fun getTokoById(@Path("tokoId") tokoId: Int): Response<GetTokoById>
+    suspend fun getTokoById(
+        @Header("Authorization") token: String,
+        @Path("tokoId") tokoId: Int
+    ): Response<GetTokoById>
 
     @Multipart
     @POST("tokos")

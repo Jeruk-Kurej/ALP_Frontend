@@ -28,28 +28,29 @@ class TokoViewModel : ViewModel() {
     private val _currentToko = MutableStateFlow<Toko?>(null)
     val currentToko: StateFlow<Toko?> = _currentToko
 
-    fun getTokoById(id: Int) {
+    fun getTokoById(token: String, id: Int) {
         viewModelScope.launch {
             _isLoading.value = true
-            try { _currentToko.value = repository.getTokoById(id) }
-            catch (e: Exception) { Log.e("TOKO_VM", "Error: ${e.message}") }
-            finally { _isLoading.value = false }
+            try {
+                _currentToko.value = repository.getTokoById(token, id)
+            } catch (e: Exception) {
+                Log.e("TOKO_VM", "Error: ${e.message}")
+            } finally {
+                _isLoading.value = false
+            }
         }
     }
-
-    // ... di dalam TokoViewModel.kt ...
 
     fun createToko(token: String, name: String, description: String, location: String, imageFile: File?) {
         viewModelScope.launch {
             _isLoading.value = true
             _errorMessage.value = null
-            _isSuccess.value = false // RESET STATE AWAL
+            _isSuccess.value = false
             try {
                 repository.createToko(token, name, description, location, imageFile)
-                _isSuccess.value = true // TRIGGER SUKSES
+                _isSuccess.value = true
             } catch (e: Exception) {
                 _errorMessage.value = e.message
-                _isSuccess.value = false
             } finally {
                 _isLoading.value = false
             }
@@ -60,10 +61,10 @@ class TokoViewModel : ViewModel() {
         viewModelScope.launch {
             _isLoading.value = true
             _errorMessage.value = null
-            _isSuccess.value = false // RESET STATE AWAL
+            _isSuccess.value = false
             try {
                 repository.updateToko(token, id, name, desc, loc, file)
-                _isSuccess.value = true // TRIGGER SUKSES
+                _isSuccess.value = true
             } catch (e: Exception) {
                 _errorMessage.value = e.message
                 _isSuccess.value = false
@@ -73,10 +74,10 @@ class TokoViewModel : ViewModel() {
         }
     }
 
-    // Panggil ini HANYA saat pindah page/dispose
     fun clearState() {
         _isSuccess.value = false
         _errorMessage.value = null
+        _currentToko.value = null
     }
 
     fun getMyTokos(token: String) {
@@ -97,11 +98,5 @@ class TokoViewModel : ViewModel() {
             } catch (e: Exception) { _errorMessage.value = e.message }
             finally { _isLoading.value = false }
         }
-    }
-
-    fun resetSuccess() {
-        _isSuccess.value = false
-        _currentToko.value = null
-        _errorMessage.value = null
     }
 }
