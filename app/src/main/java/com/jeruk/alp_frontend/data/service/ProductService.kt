@@ -19,6 +19,7 @@ interface ProductService {
 
     @GET("products/{productId}")
     suspend fun getProductById(
+        @Header("Authorization") token: String,
         @Path("productId") productId: Int
     ): Response<GetProductById>
 
@@ -42,7 +43,7 @@ interface ProductService {
         @Part("name") name: RequestBody,
         @Part("description") description: RequestBody,
         @Part("price") price: RequestBody,
-        @Part("categoryId") categoryId: RequestBody,  // Changed from category_id to categoryId
+        @Part("category_id") categoryId: RequestBody,
         @Part("toko_ids") tokoIds: RequestBody?,
         @Part image: MultipartBody.Part?
     ): Response<UpdateProductById>

@@ -33,7 +33,9 @@ import com.jeruk.alp_frontend.ui.view.Setting.SettingAdminView
 import com.jeruk.alp_frontend.ui.view.Setting.SettingView
 import com.jeruk.alp_frontend.ui.view.Product.AddProductView
 import com.jeruk.alp_frontend.ui.view.Product.ProductAdminView
+import com.jeruk.alp_frontend.ui.view.Product.UpdateProductView
 import com.jeruk.alp_frontend.ui.view.Category.AddCategoryView
+import com.jeruk.alp_frontend.ui.view.Category.UpdateCategoryView
 import com.jeruk.alp_frontend.ui.view.Toko.CreateTokoView
 import com.jeruk.alp_frontend.ui.view.Toko.TokoAdminView
 import com.jeruk.alp_frontend.ui.view.Toko.TokoView
@@ -72,7 +74,9 @@ enum class AppView(
     CreateToko("Tambah Toko"),
     UpdateToko("Edit Toko"),
     AddProduct("Tambah Produk"),
-    AddCategory("Tambah Kategori")
+    UpdateProduct("Edit Produk"),
+    AddCategory("Tambah Kategori"),
+    UpdateCategory("Edit Kategori")
 }
 
 @OptIn(ExperimentalMaterial3Api::class)
@@ -96,7 +100,10 @@ fun AppRoute() {
         AppView.AnalysisDetail.name,
         AppView.CreateToko.name,
         AppView.UpdateToko.name,
-        AppView.AddProduct.name
+        AppView.AddProduct.name,
+        AppView.UpdateProduct.name,
+        AppView.AddCategory.name,
+        AppView.UpdateCategory.name
     )
     var isUserInAdminMode by remember { mutableStateOf(false) }
 
@@ -226,8 +233,28 @@ fun AppRoute() {
                 AddProductView(navController = navController, token = userState.token)
             }
 
+            composable("${AppView.UpdateProduct.name}/{productId}") { backStackEntry ->
+                val productId = backStackEntry.arguments?.getString("productId")?.toIntOrNull() ?: 0
+                UpdateProductView(
+                    token = userState.token,
+                    productId = productId,
+                    onSuccess = { navController.popBackStack() },
+                    navController = navController
+                )
+            }
+
             composable(AppView.AddCategory.name) {
                 AddCategoryView(navController = navController, token = userState.token)
+            }
+
+            composable("${AppView.UpdateCategory.name}/{categoryId}") { backStackEntry ->
+                val categoryId = backStackEntry.arguments?.getString("categoryId")?.toIntOrNull() ?: 0
+                UpdateCategoryView(
+                    token = userState.token,
+                    categoryId = categoryId,
+                    onSuccess = { navController.popBackStack() },
+                    navController = navController
+                )
             }
 
             // --- SETTING ---

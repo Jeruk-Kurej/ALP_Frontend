@@ -40,9 +40,16 @@ class ProductRepository(
         }
     }
 
-    suspend fun getProductById(productId: Int): Product {
-        val response = service.getProductById(productId)
-        val item = response.body()!!.data
+    suspend fun getProductById(token: String, productId: Int): Product {
+        android.util.Log.d("ProductRepository", "Getting product by ID: $productId")
+        val response = service.getProductById("Bearer $token", productId)
+
+        if (!response.isSuccessful) {
+            android.util.Log.e("ProductRepository", "Failed to get product: ${response.code()}")
+            throw Exception("Failed to load product: ${response.code()}")
+        }
+
+        val item = response.body()?.data ?: throw Exception("Product not found")
 
         return Product(
             id = item.id,
@@ -188,6 +195,9 @@ class ProductRepository(
         tokoIds: String,
         imageFile: File?
     ): Product {
+        android.util.Log.d("ProductRepository", "Updating product ID: $productId")
+        android.util.Log.d("ProductRepository", "Name: $name, Price: $price, CategoryId: $categoryId")
+
         val nameBody = name.toRequestBody("multipart/form-data".toMediaTypeOrNull())
         val descBody = description.toRequestBody("multipart/form-data".toMediaTypeOrNull())
         val priceBody = price.toString().toRequestBody("multipart/form-data".toMediaTypeOrNull())
@@ -201,22 +211,53 @@ class ProductRepository(
         }
 
         val imagePart = imageFile?.let {
-            val requestFile = it.asRequestBody("image/*".toMediaTypeOrNull())
+            android.util.Log.d("ProductRepository", "Image file provided for update: ${it.name}, size: ${it.length()}")
+
+            // Detect mime type based on file extension
+            val mimeType = when {
+                it.name.endsWith(".jpg", ignoreCase = true) || it.name.endsWith(".jpeg", ignoreCase = true) -> "image/jpeg"
+                it.name.endsWith(".png", ignoreCase = true) -> "image/png"
+                it.name.endsWith(".gif", ignoreCase = true) -> "image/gif"
+                it.name.endsWith(".webp", ignoreCase = true) -> "image/webp"
+                else -> "image/jpeg" // Default to JPEG
+            }
+
+            android.util.Log.d("ProductRepository", "Using mime type: $mimeType")
+            val requestFile = it.asRequestBody(mimeType.toMediaTypeOrNull())
             MultipartBody.Part.createFormData("image", it.name, requestFile)
+        } ?: run {
+            android.util.Log.d("ProductRepository", "No new image provided - keeping existing image")
+            null
         }
 
-        val response = service.updateProduct(
-            token = "Bearer $token",
-            productId = productId,
-            name = nameBody,
-            description = descBody,
-            price = priceBody,
-            categoryId = categoryBody,
-            tokoIds = tokoIdsBody,
-            image = imagePart
-        )
+        val response = try {
+            service.updateProduct(
+                token = "Bearer $token",
+                productId = productId,
+                name = nameBody,
+                description = descBody,
+                price = priceBody,
+                categoryId = categoryBody,
+                tokoIds = tokoIdsBody,
+                image = imagePart
+            )
+        } catch (e: Exception) {
+            android.util.Log.e("ProductRepository", "Exception during update", e)
+            throw Exception("Failed to update product: ${e.message}")
+        }
 
-        val item = response.body()!!.data
+        android.util.Log.d("ProductRepository", "Update response code: ${response.code()}")
+
+        if (!response.isSuccessful) {
+            val errorBody = response.errorBody()?.string()
+            android.util.Log.e("ProductRepository", "Update failed: ${response.code()}")
+            android.util.Log.e("ProductRepository", "Error body: $errorBody")
+            throw Exception("Failed to update product: ${response.code()} - $errorBody")
+        }
+
+        val item = response.body()?.data ?: throw Exception("Empty response after update")
+
+        android.util.Log.d("ProductRepository", "Product updated successfully: ${item.name}")
 
         return Product(
             id = item.id,

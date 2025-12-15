@@ -31,6 +31,7 @@ import androidx.navigation.NavController
 import coil.compose.AsyncImage
 import com.jeruk.alp_frontend.ui.model.Category
 import com.jeruk.alp_frontend.ui.model.Product
+import com.jeruk.alp_frontend.ui.route.AppView // Import AppView
 import com.jeruk.alp_frontend.ui.viewmodel.CategoryViewModel
 import com.jeruk.alp_frontend.ui.viewmodel.ProductViewModel
 
@@ -57,7 +58,7 @@ fun ProductAdminView(
                 if (selectedTab == 0) {
                     productViewModel.getAllProducts(token)
                 } else {
-                    categoryViewModel.getAllCategories(token)
+                    categoryViewModel.getAllCategories(token) // Pass token here
                 }
             }
         }
@@ -216,9 +217,9 @@ fun ProductListContent(
                 )
             }
 
-            // Tambah Button - At the right aligned with header
+            // Tambah Button
             Button(
-                onClick = { navController.navigate("AddProduct") },
+                onClick = { navController.navigate(AppView.AddProduct.name) },
                 shape = RoundedCornerShape(12.dp),
                 colors = ButtonDefaults.buttonColors(containerColor = Color.Transparent),
                 contentPadding = PaddingValues(0.dp),
@@ -321,11 +322,9 @@ fun ProductListContent(
                     ProductCard(
                         product = product,
                         onEdit = {
-                            // TODO: Navigate to edit view
-                            Toast.makeText(context, "Edit ${product.name}", Toast.LENGTH_SHORT).show()
+                            navController.navigate("${AppView.UpdateProduct.name}/${product.id}")
                         },
                         onDelete = {
-                            // TODO: Show confirmation dialog
                             productViewModel.deleteProduct(token, product.id)
                             Toast.makeText(context, "Menghapus ${product.name}...", Toast.LENGTH_SHORT).show()
                         }
@@ -354,7 +353,6 @@ fun ProductCard(
                 .padding(16.dp),
             horizontalArrangement = Arrangement.spacedBy(16.dp)
         ) {
-            // Product Image with Coil
             if (product.imageUrl.isNotBlank()) {
                 AsyncImage(
                     model = product.imageUrl,
@@ -365,7 +363,6 @@ fun ProductCard(
                     contentScale = ContentScale.Crop
                 )
             } else {
-                // Placeholder if no image
                 Box(
                     modifier = Modifier
                         .size(80.dp)
@@ -382,7 +379,6 @@ fun ProductCard(
                 }
             }
 
-            // Product Details
             Column(
                 modifier = Modifier.weight(1f),
                 verticalArrangement = Arrangement.spacedBy(4.dp)
@@ -428,7 +424,6 @@ fun ProductCard(
                 }
             }
 
-            // Action Buttons
             Column(
                 verticalArrangement = Arrangement.spacedBy(8.dp)
             ) {
@@ -489,7 +484,6 @@ fun CategoryListContent(
             .fillMaxSize()
             .padding(horizontal = 24.dp)
     ) {
-        // Header
         Row(
             modifier = Modifier.fillMaxWidth(),
             horizontalArrangement = Arrangement.SpaceBetween,
@@ -500,7 +494,7 @@ fun CategoryListContent(
                 Text(text = "${categories.size} kategori", fontSize = 14.sp, color = Color.Gray)
             }
             Button(
-                onClick = { /* TODO: Navigate to Add Category Screen */ },
+                onClick = { navController.navigate(AppView.AddCategory.name) }, // Fixed this
                 shape = RoundedCornerShape(12.dp),
                 colors = ButtonDefaults.buttonColors(containerColor = Color.Transparent),
                 contentPadding = PaddingValues(0.dp),
@@ -526,7 +520,6 @@ fun CategoryListContent(
 
         Spacer(modifier = Modifier.height(16.dp))
 
-        // Search Bar
         OutlinedTextField(
             value = searchQuery,
             onValueChange = { searchQuery = it },
@@ -544,7 +537,6 @@ fun CategoryListContent(
 
         Spacer(modifier = Modifier.height(16.dp))
 
-        // Content
         if (isLoading) {
             Box(modifier = Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
                 CircularProgressIndicator(color = Color(0xFF9333EA))
@@ -566,9 +558,8 @@ fun CategoryListContent(
             LazyColumn(verticalArrangement = Arrangement.spacedBy(12.dp)) {
                 items(filteredCategories, key = { it.id }) { category ->
                     CategoryCard(category = category, onEdit = {
-                        // TODO: Navigate to edit
+                        navController.navigate("${AppView.UpdateCategory.name}/${category.id}")
                     }, onDelete = {
-                        // TODO: Implement delete
                         categoryViewModel.deleteCategory(token, category.id)
                     })
                 }
