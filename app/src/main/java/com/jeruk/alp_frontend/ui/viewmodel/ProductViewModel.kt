@@ -18,7 +18,7 @@ data class ProductState(
 class ProductViewModel : ViewModel() {
 
     // Inisialisasi repository langsung dari Container sesuai style kamu
-    private val repository = AppContainer().productRepository
+    private val repository = AppContainer.productRepository
 
     private val _products = MutableStateFlow<List<Product>>(emptyList())
     val products: StateFlow<List<Product>> = _products

@@ -22,7 +22,7 @@ class AuthViewModel : ViewModel() {
     private val _isLoading = MutableStateFlow(false)
     val isLoading: StateFlow<Boolean> = _isLoading
 
-    private val repository = AppContainer().authRepository
+    private val repository = AppContainer.authRepository
 
     // Fungsi Login menggunakan USERNAME
     fun login(username: String, pass: String) {

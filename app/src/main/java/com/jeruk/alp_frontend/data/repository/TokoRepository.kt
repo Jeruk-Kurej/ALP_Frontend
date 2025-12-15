@@ -33,8 +33,8 @@ class TokoRepository(
         }
     }
 
-    suspend fun getTokoById(tokoId: Int): Toko {
-        val response = service.getTokoById(tokoId)
+    suspend fun getTokoById(token: String, tokoId: Int): Toko {
+        val response = service.getTokoById("Bearer $token", tokoId)
 
         if (response.isSuccessful) {
             val body = response.body()!!
@@ -45,7 +45,8 @@ class TokoRepository(
                 description = item.description,
                 address = item.location,
                 imageUrl = "$baseUrl${item.image}",
-                isOpen = item.is_open
+                isOpen = item.is_open,
+                ownerId = item.owner.id  // Map owner.id from backend
             )
         } else {
             throw Exception("Gagal mengambil data toko: ${response.code()}")
@@ -85,10 +86,61 @@ class TokoRepository(
                 description = item.description,
                 address = item.location,
                 imageUrl = "$baseUrl${item.image}",
-                isOpen = item.is_open
+                isOpen = item.is_open,
+                ownerId = item.owner.id  // Map owner.id from backend
             )
         } else {
             throw Exception("Gagal membuat toko: ${response.code()}")
+        }
+    }
+
+    suspend fun updateToko(
+        token: String,
+        tokoId: Int,
+        name: String,
+        description: String,
+        location: String,
+        imageFile: File?
+    ): Toko {
+        val namePart = name.toRequestBody("text/plain".toMediaTypeOrNull())
+        val descriptionPart = description.toRequestBody("text/plain".toMediaTypeOrNull())
+        val locationPart = location.toRequestBody("text/plain".toMediaTypeOrNull())
+
+        val imagePart = imageFile?.let {
+            val requestBody = it.asRequestBody("image/*".toMediaTypeOrNull())
+            MultipartBody.Part.createFormData("image", it.name, requestBody)
+        }
+
+        val response = service.updateToko(
+            token = "Bearer $token",
+            tokoId = tokoId,
+            name = namePart,
+            description = descriptionPart,
+            location = locationPart,
+            image = imagePart
+        )
+
+        if (response.isSuccessful) {
+            val body = response.body()!!
+            val item = body.data
+            return Toko(
+                id = item.id,
+                name = item.name,
+                description = item.description,
+                address = item.location,
+                imageUrl = "$baseUrl${item.image}",
+                isOpen = item.is_open,
+                ownerId = item.owner.id
+            )
+        } else {
+            throw Exception("Gagal mengupdate toko: ${response.code()}")
+        }
+    }
+
+    suspend fun deleteToko(token: String, tokoId: Int) {
+        val response = service.deleteToko("Bearer $token", tokoId)
+        if (!response.isSuccessful) {
+            throw Exception("Gagal menghapus toko: ${response.code()}")
         }
     }
 }

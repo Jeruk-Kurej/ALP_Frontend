@@ -11,7 +11,7 @@ import kotlinx.coroutines.launch
 class CategoryViewModel : ViewModel() { // <-- Constructor kosong sesuai style Bryan
 
     // Inisialisasi repository langsung dari Container
-    private val repository = AppContainer().categoryRepository
+    private val repository = AppContainer.categoryRepository
 
     private val _categories = MutableStateFlow<List<Category>>(emptyList())
     val categories: StateFlow<List<Category>> = _categories

@@ -35,6 +35,7 @@ import com.jeruk.alp_frontend.ui.view.Product.AddProductView
 import com.jeruk.alp_frontend.ui.view.Product.ProductAdminView
 import com.jeruk.alp_frontend.ui.view.Category.AddCategoryView
 import com.jeruk.alp_frontend.ui.view.Toko.CreateTokoView
+import com.jeruk.alp_frontend.ui.view.Toko.UpdateTokoView
 import com.jeruk.alp_frontend.ui.view.Toko.TokoAdminView
 import com.jeruk.alp_frontend.ui.view.Toko.TokoView
 import com.jeruk.alp_frontend.ui.viewmodel.AuthViewModel
@@ -69,6 +70,7 @@ enum class AppView(
     // --- Sub-Pages ---
     AnalysisDetail("Detail Analisis"),
     CreateToko("Tambah Toko"),
+    UpdateToko("Edit Toko"),
     AddProduct("Tambah Produk"),
     AddCategory("Tambah Kategori")
 }
@@ -86,7 +88,7 @@ fun AppRoute() {
     val currentView = AppView.entries.find { it.name == currentRoute } ?: AppView.Welcoming
 
     // State Mode Admin
-    val adminRoutes = listOf(AppView.Analysis.name, AppView.AdminToko.name, AppView.AdminProduk.name, AppView.AnalysisDetail.name, AppView.CreateToko.name, AppView.AddProduct.name)
+    val adminRoutes = listOf(AppView.Analysis.name, AppView.AdminToko.name, AppView.AdminProduk.name, AppView.AnalysisDetail.name, AppView.CreateToko.name, AppView.UpdateToko.name, AppView.AddProduct.name)
     var isUserInAdminMode by remember { mutableStateOf(false) }
 
     LaunchedEffect(currentRoute) {
@@ -153,6 +155,15 @@ fun AppRoute() {
                 // KIRIM TOKEN DARI userState KE CreateTokoView
                 CreateTokoView(
                     token = userState.token,
+                    onSuccess = { navController.popBackStack() },
+                    navController = navController
+                )
+            }
+            composable("${AppView.UpdateToko.name}/{tokoId}") { backStackEntry ->
+                val tokoId = backStackEntry.arguments?.getString("tokoId")?.toIntOrNull() ?: 0
+                UpdateTokoView(
+                    token = userState.token,
+                    tokoId = tokoId,
                     onSuccess = { navController.popBackStack() },
                     navController = navController
                 )

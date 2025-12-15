@@ -41,7 +41,7 @@ fun UpdateTokoView(
     tokoViewModel: TokoViewModel = viewModel()
 ) {
     val context = LocalContext.current
-    val currentToko by tokoViewModel.currentToko.collectAsState()
+    val selectedToko by tokoViewModel.selectedToko.collectAsState()
     val isSuccess by tokoViewModel.isSuccess.collectAsState()
     val isLoading by tokoViewModel.isLoading.collectAsState()
 
@@ -69,8 +69,8 @@ fun UpdateTokoView(
     }
 
     // 2. Pre-fill data ke form
-    LaunchedEffect(currentToko) {
-        currentToko?.let {
+    LaunchedEffect(selectedToko) {
+        selectedToko?.let {
             name = it.name
             location = it.address
             description = it.description
@@ -139,8 +139,8 @@ fun UpdateTokoView(
         ) {
             if (imageUri != null) {
                 AsyncImage(model = imageUri, contentDescription = null, modifier = Modifier.fillMaxSize(), contentScale = ContentScale.Crop)
-            } else if (!currentToko?.imageUrl.isNullOrEmpty()) {
-                AsyncImage(model = currentToko?.imageUrl, contentDescription = null, modifier = Modifier.fillMaxSize(), contentScale = ContentScale.Crop)
+            } else if (!selectedToko?.imageUrl.isNullOrEmpty()) {
+                AsyncImage(model = selectedToko?.imageUrl, contentDescription = null, modifier = Modifier.fillMaxSize(), contentScale = ContentScale.Crop)
             } else {
                 Column(horizontalAlignment = Alignment.CenterHorizontally) {
                     Icon(Icons.Default.PhotoCamera, null, tint = Color(0xFF9333EA), modifier = Modifier.size(40.dp))
