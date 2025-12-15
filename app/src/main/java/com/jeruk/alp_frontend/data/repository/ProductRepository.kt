@@ -70,19 +70,26 @@ class ProductRepository(
             throw Exception("Invalid category ID: $categoryId")
         }
 
-        val nameBody = name.toRequestBody("text/plain".toMediaTypeOrNull())
-        val descBody = description.toRequestBody("text/plain".toMediaTypeOrNull())
-        val priceBody = price.toString().toRequestBody("text/plain".toMediaTypeOrNull())
-        val categoryBody = categoryId.toString().toRequestBody("text/plain".toMediaTypeOrNull())
+        // Convert all values to RequestBody with proper content type
+        // IMPORTANT: Use "multipart/form-data" as content type for all form fields
+        val nameBody = name.toRequestBody("multipart/form-data".toMediaTypeOrNull())
+        val descBody = description.toRequestBody("multipart/form-data".toMediaTypeOrNull())
 
-        android.util.Log.d("ProductRepository", "CategoryId being sent as string: '${categoryId.toString()}'")
+        // For numeric values, ensure they're properly formatted as plain strings
+        val priceBody = price.toString().toRequestBody("multipart/form-data".toMediaTypeOrNull())
 
-        // Don't send toko_ids at all if not provided - backend might not accept "0"
-        val tokoIdsBody = if (tokoIds.isNotEmpty() && tokoIds != "0") {
-            tokoIds.toRequestBody("text/plain".toMediaTypeOrNull())
-        } else {
-            null  // Don't send the field - let backend use default
-        }
+        // Critical: CategoryId must be sent as a clean integer string
+        val categoryIdString = categoryId.toString()
+        android.util.Log.d("ProductRepository", "CategoryId value: $categoryId")
+        android.util.Log.d("ProductRepository", "CategoryId as string: '$categoryIdString'")
+        android.util.Log.d("ProductRepository", "CategoryId string length: ${categoryIdString.length}")
+
+        val categoryBody = categoryIdString.toRequestBody("multipart/form-data".toMediaTypeOrNull())
+
+        // DON'T send toko_ids at all - completely omit the field
+        // Backend will handle this as nullable/optional
+        // Only send it when we have actual toko IDs in the future
+        val tokoIdsBody: okhttp3.RequestBody? = null
 
         // Make sure image exists - throw error if not provided
         if (imageFile == null || !imageFile.exists()) {
@@ -101,7 +108,7 @@ class ProductRepository(
         android.util.Log.d("ProductRepository", "- Price: $price")
         android.util.Log.d("ProductRepository", "- CategoryId: $categoryId")
         android.util.Log.d("ProductRepository", "- Image: ${imageFile.name} (${imageFile.length()} bytes)")
-        android.util.Log.d("ProductRepository", "- TokoIds: ${if (tokoIdsBody == null) "null (not sent)" else tokoIds}")
+        android.util.Log.d("ProductRepository", "- TokoIds: NOT SENT (null)")
         android.util.Log.d("ProductRepository", "=========================")
 
         val response = try {
@@ -126,9 +133,25 @@ class ProductRepository(
             val errorBody = response.errorBody()?.string()
             android.util.Log.e("ProductRepository", "=== API ERROR DETAILS ===")
             android.util.Log.e("ProductRepository", "Status Code: ${response.code()}")
-            android.util.Log.e("ProductRepository", "Error Body: $errorBody")
+
+            // Truncate error if too long to see the key parts
+            if (errorBody != null && errorBody.length > 500) {
+                android.util.Log.e("ProductRepository", "Error Body (first 500 chars): ${errorBody.take(500)}")
+                android.util.Log.e("ProductRepository", "Error Body (last 200 chars): ${errorBody.takeLast(200)}")
+            } else {
+                android.util.Log.e("ProductRepository", "Error Body: $errorBody")
+            }
+
             android.util.Log.e("ProductRepository", "Response Headers: ${response.headers()}")
-            throw Exception("Failed to create product: ${response.code()} - $errorBody")
+
+            // Create user-friendly error message
+            val shortError = if (errorBody != null && errorBody.length > 100) {
+                errorBody.take(100) + "..."
+            } else {
+                errorBody ?: "Unknown error"
+            }
+
+            throw Exception("Failed to create product: ${response.code()} - $shortError")
         }
 
         val item = response.body()?.data ?: throw Exception("Empty response body")
@@ -157,14 +180,14 @@ class ProductRepository(
         tokoIds: String,
         imageFile: File?
     ): Product {
-        val nameBody = name.toRequestBody("text/plain".toMediaTypeOrNull())
-        val descBody = description.toRequestBody("text/plain".toMediaTypeOrNull())
-        val priceBody = price.toString().toRequestBody("text/plain".toMediaTypeOrNull())
-        val categoryBody = categoryId.toString().toRequestBody("text/plain".toMediaTypeOrNull())
+        val nameBody = name.toRequestBody("multipart/form-data".toMediaTypeOrNull())
+        val descBody = description.toRequestBody("multipart/form-data".toMediaTypeOrNull())
+        val priceBody = price.toString().toRequestBody("multipart/form-data".toMediaTypeOrNull())
+        val categoryBody = categoryId.toString().toRequestBody("multipart/form-data".toMediaTypeOrNull())
 
         // Only send tokoIds if it's not empty
         val tokoIdsBody = if (tokoIds.isNotEmpty()) {
-            tokoIds.toRequestBody("text/plain".toMediaTypeOrNull())
+            tokoIds.toRequestBody("multipart/form-data".toMediaTypeOrNull())
         } else {
             null
         }
