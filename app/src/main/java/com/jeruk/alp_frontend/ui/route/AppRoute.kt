@@ -105,6 +105,9 @@ fun AppRoute() {
         AppView.AddCategory.name,
         AppView.UpdateCategory.name
     )
+    val waiterRoutes = listOf(
+        AppView.Home.name
+    )
     var isUserInAdminMode by remember { mutableStateOf(false) }
 
     LaunchedEffect(currentRoute) {
@@ -112,9 +115,10 @@ fun AppRoute() {
         val cleanRoute = currentRoute?.split("/")?.first()
         if (cleanRoute in adminRoutes) {
             isUserInAdminMode = true
-        } else if (cleanRoute == AppView.Home.name) {
+        } else if (cleanRoute in waiterRoutes) {
             isUserInAdminMode = false
         }
+        // Setting page keeps current mode
     }
 
     val rootPages = listOf(
@@ -271,7 +275,12 @@ fun AppRoute() {
                         },
                         onExitAdminMode = {
                             isUserInAdminMode = false
-                            navController.navigate(AppView.Home.name)
+                            navController.navigate(AppView.Home.name) {
+                                popUpTo(AppView.Home.name) {
+                                    inclusive = true
+                                }
+                                launchSingleTop = true
+                            }
                         }
                     )
                 } else {
