@@ -41,7 +41,7 @@ fun UpdateTokoView(
     tokoViewModel: TokoViewModel = viewModel()
 ) {
     val context = LocalContext.current
-    val selectedToko by tokoViewModel.selectedToko.collectAsState()
+    val currentToko by tokoViewModel.selectedToko.collectAsState()
     val isSuccess by tokoViewModel.isSuccess.collectAsState()
     val isLoading by tokoViewModel.isLoading.collectAsState()
 
@@ -69,8 +69,8 @@ fun UpdateTokoView(
     }
 
     // 2. Pre-fill data ke form
-    LaunchedEffect(selectedToko) {
-        selectedToko?.let {
+    LaunchedEffect(currentToko) {
+        currentToko?.let {
             name = it.name
             location = it.address
             description = it.description
@@ -121,9 +121,9 @@ fun UpdateTokoView(
         }
 
         // --- INPUT FIELDS ---
-        CustomTextField(value = name, onValueChange = { name = it }, label = "Nama Toko", placeholder = "Nama Toko")
-        CustomTextField(value = location, onValueChange = { location = it }, label = "Lokasi", placeholder = "Alamat Lengkap")
-        CustomTextField(value = description, onValueChange = { description = it }, label = "Deskripsi", placeholder = "Tentang Toko...", minLines = 3)
+//        CustomTextField(value = name, onValueChange = { name = it }, label = "Nama Toko", placeholder = "Nama Toko")
+//        CustomTextField(value = location, onValueChange = { location = it }, label = "Lokasi", placeholder = "Alamat Lengkap")
+//        CustomTextField(value = description, onValueChange = { description = it }, label = "Deskripsi", placeholder = "Tentang Toko...", minLines = 3)
 
         // --- IMAGE SECTION ---
         Text(text = "Foto Toko", fontWeight = FontWeight.Bold, fontSize = 16.sp, color = Color(0xFF374151))
@@ -139,8 +139,8 @@ fun UpdateTokoView(
         ) {
             if (imageUri != null) {
                 AsyncImage(model = imageUri, contentDescription = null, modifier = Modifier.fillMaxSize(), contentScale = ContentScale.Crop)
-            } else if (!selectedToko?.imageUrl.isNullOrEmpty()) {
-                AsyncImage(model = selectedToko?.imageUrl, contentDescription = null, modifier = Modifier.fillMaxSize(), contentScale = ContentScale.Crop)
+            } else if (!currentToko?.imageUrl.isNullOrEmpty()) {
+                AsyncImage(model = currentToko?.imageUrl, contentDescription = null, modifier = Modifier.fillMaxSize(), contentScale = ContentScale.Crop)
             } else {
                 Column(horizontalAlignment = Alignment.CenterHorizontally) {
                     Icon(Icons.Default.PhotoCamera, null, tint = Color(0xFF9333EA), modifier = Modifier.size(40.dp))
