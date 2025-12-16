@@ -145,7 +145,7 @@ fun CreateTokoView(
                     )
                     Spacer(modifier = Modifier.height(8.dp))
                     Text(
-                        text = "Pilih Gambar Terbaik",
+                        text = "Pilih Gambar",
                         color = Color.Gray,
                         fontSize = 14.sp
                     )

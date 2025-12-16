@@ -41,7 +41,13 @@ class TokoViewModel : ViewModel() {
         }
     }
 
-    fun createToko(token: String, name: String, description: String, location: String, imageFile: File?) {
+    fun createToko(
+        token: String,
+        name: String,
+        description: String,
+        location: String,
+        imageFile: File?
+    ) {
         viewModelScope.launch {
             _isLoading.value = true
             _errorMessage.value = null
@@ -83,9 +89,13 @@ class TokoViewModel : ViewModel() {
     fun getMyTokos(token: String) {
         viewModelScope.launch {
             _isLoading.value = true
-            try { _tokos.value = repository.getMyTokos(token) }
-            catch (e: Exception) { e.printStackTrace() }
-            finally { _isLoading.value = false }
+            try {
+                _tokos.value = repository.getMyTokos(token)
+            } catch (e: Exception) {
+                e.printStackTrace()
+            } finally {
+                _isLoading.value = false
+            }
         }
     }
 
@@ -95,8 +105,11 @@ class TokoViewModel : ViewModel() {
             try {
                 repository.deleteToko(token, id)
                 getMyTokos(token)
-            } catch (e: Exception) { _errorMessage.value = e.message }
-            finally { _isLoading.value = false }
+            } catch (e: Exception) {
+                _errorMessage.value = e.message
+            } finally {
+                _isLoading.value = false
+            }
         }
     }
 }

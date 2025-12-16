@@ -42,5 +42,5 @@ interface TokoService {
     suspend fun deleteToko(
         @Header("Authorization") token: String,
         @Path("tokoId") tokoId: Int
-    ): Response<GetTokoById>
+    ): Response<Unit>
 }

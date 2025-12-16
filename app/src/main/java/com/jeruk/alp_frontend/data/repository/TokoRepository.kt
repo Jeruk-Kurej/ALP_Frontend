@@ -12,33 +12,63 @@ import java.io.File
 
 class TokoRepository(private val service: TokoService, private val baseUrl: String) {
 
-    private fun formatToken(token: String): String = if (token.startsWith("Bearer ")) token else "Bearer $token"
+    private fun formatToken(token: String): String =
+        if (token.startsWith("Bearer ")) token else "Bearer $token"
 
     suspend fun getTokoById(token: String, tokoId: Int): Toko {
         val response = service.getTokoById(formatToken(token), tokoId)
         if (!response.isSuccessful) throw Exception("Gagal ambil data: ${response.code()}")
         val item = response.body()!!.data
-        return Toko(item.id, item.name ?: "", item.description ?: "", item.location ?: "", if (item.image != null) "$baseUrl${item.image}" else "", item.is_open)
+        return Toko(
+            item.id,
+            item.name ?: "",
+            item.description ?: "",
+            item.location ?: "",
+            if (item.image != null) "$baseUrl${item.image}" else "",
+            item.is_open
+        )
     }
 
-    suspend fun createToko(token: String, name: String, desc: String, loc: String, imageFile: File?): Toko {
+    suspend fun createToko(
+        token: String,
+        name: String,
+        desc: String,
+        loc: String,
+        imageFile: File?
+    ): Toko {
         val namePart = name.toRequestBody("text/plain".toMediaTypeOrNull())
         val descPart = desc.toRequestBody("text/plain".toMediaTypeOrNull())
         val locPart = loc.toRequestBody("text/plain".toMediaTypeOrNull())
         val imagePart = prepareImagePart(imageFile)
 
-        val response = service.createToko(formatToken(token), namePart, descPart, locPart, imagePart)
+        val response =
+            service.createToko(formatToken(token), namePart, descPart, locPart, imagePart)
         if (response.isSuccessful) return getTokoById(token, response.body()!!.data.id)
         else throw Exception("Gagal Simpan: ${response.errorBody()?.string()}")
     }
 
-    suspend fun updateToko(token: String, id: Int, name: String, desc: String, loc: String, imageFile: File?): Toko {
+    suspend fun updateToko(
+        token: String,
+        id: Int,
+        name: String,
+        desc: String,
+        loc: String,
+        imageFile: File?
+    ): Toko {
         val namePart = name.toRequestBody("text/plain".toMediaTypeOrNull())
         val descPart = desc.toRequestBody("text/plain".toMediaTypeOrNull())
         val locPart = loc.toRequestBody("text/plain".toMediaTypeOrNull())
         val imagePart = prepareImagePart(imageFile)
 
-        val response = service.updateToko(formatToken(token), id, namePart, descPart, locPart, imagePart)
+        val response =
+            service.updateToko(
+                formatToken(token),
+                id,
+                namePart,
+                descPart,
+                locPart,
+                imagePart
+            )
         if (response.isSuccessful) return getTokoById(token, id)
         else throw Exception("Gagal Update: ${response.errorBody()?.string()}")
     }
@@ -47,20 +77,35 @@ class TokoRepository(private val service: TokoService, private val baseUrl: Stri
         val response = service.getAllMyTokos(formatToken(token))
         if (!response.isSuccessful) return emptyList()
         return response.body()!!.data.map { item ->
-            Toko(item.id, item.name ?: "", item.description ?: "", item.location ?: "", if (item.image != null) "$baseUrl${item.image}" else "", item.is_open)
+            Toko(
+                item.id,
+                item.name ?: "",
+                item.description ?: "",
+                item.location ?: "",
+                if (item.image != null) "$baseUrl${item.image}" else "",
+                item.is_open
+            )
         }
     }
 
     suspend fun deleteToko(token: String, id: Int) {
-        service.deleteToko(formatToken(token), id)
+        service.deleteToko(
+            formatToken(token),
+            id
+        )
     }
 
     private fun prepareImagePart(file: File?): MultipartBody.Part? {
         return file?.let {
             val extension = it.extension.lowercase()
-            val mimeType = MimeTypeMap.getSingleton().getMimeTypeFromExtension(extension) ?: "image/jpeg"
+            val mimeType =
+                MimeTypeMap.getSingleton().getMimeTypeFromExtension(extension) ?: "image/jpeg"
             val requestBody = it.asRequestBody(mimeType.toMediaTypeOrNull())
-            MultipartBody.Part.createFormData("image", it.name, requestBody)
+            MultipartBody.Part.createFormData(
+                "image",
+                it.name,
+                requestBody
+            )
         }
     }
 }
