@@ -13,10 +13,13 @@ import retrofit2.http.*
 interface ProductService {
 
     @GET("products")
-    suspend fun getAllProducts(): Response<GetAllProducts>
+    suspend fun getAllProducts(
+        @Header("Authorization") token: String
+    ): Response<GetAllProducts>
 
     @GET("products/{productId}")
     suspend fun getProductById(
+        @Header("Authorization") token: String,
         @Path("productId") productId: Int
     ): Response<GetProductById>
 

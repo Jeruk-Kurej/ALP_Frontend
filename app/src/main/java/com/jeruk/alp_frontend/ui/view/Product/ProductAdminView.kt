@@ -10,7 +10,6 @@ import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Add
 import androidx.compose.material.icons.filled.Delete
 import androidx.compose.material.icons.filled.Edit
-import androidx.compose.material.icons.filled.LocalOffer
 import androidx.compose.material.icons.filled.Search
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
@@ -21,13 +20,18 @@ import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.platform.LocalLifecycleOwner
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import androidx.lifecycle.Lifecycle
+import androidx.lifecycle.LifecycleEventObserver
 import androidx.lifecycle.viewmodel.compose.viewModel
 import androidx.navigation.NavController
 import coil.compose.AsyncImage
+import com.jeruk.alp_frontend.ui.model.Category
 import com.jeruk.alp_frontend.ui.model.Product
+import com.jeruk.alp_frontend.ui.route.AppView // Import AppView
 import com.jeruk.alp_frontend.ui.viewmodel.CategoryViewModel
 import com.jeruk.alp_frontend.ui.viewmodel.ProductViewModel
 
@@ -46,11 +50,22 @@ fun ProductAdminView(
     val errorMessage by productViewModel.errorMessage.collectAsState()
     val context = LocalContext.current
 
-    // Fetch products when the view is displayed
-    // This will run every time we navigate back to this screen
-    LaunchedEffect(key1 = navController.currentBackStackEntry) {
-        android.util.Log.d("ProductAdminView", "Screen entered/resumed, refreshing products...")
-        productViewModel.getAllProducts()
+    // Refetch data every time the screen is resumed
+    val lifecycleOwner = LocalLifecycleOwner.current
+    DisposableEffect(lifecycleOwner, selectedTab) { // Re-run when tab changes
+        val observer = LifecycleEventObserver { _, event ->
+            if (event == Lifecycle.Event.ON_RESUME) {
+                if (selectedTab == 0) {
+                    productViewModel.getAllProducts(token)
+                } else {
+                    categoryViewModel.getAllCategories(token) // Pass token here
+                }
+            }
+        }
+        lifecycleOwner.lifecycle.addObserver(observer)
+        onDispose {
+            lifecycleOwner.lifecycle.removeObserver(observer)
+        }
     }
 
     // Show error message if any
@@ -202,9 +217,9 @@ fun ProductListContent(
                 )
             }
 
-            // Tambah Button - At the right aligned with header
+            // Tambah Button
             Button(
-                onClick = { navController.navigate("AddProduct") },
+                onClick = { navController.navigate(AppView.AddProduct.name) },
                 shape = RoundedCornerShape(12.dp),
                 colors = ButtonDefaults.buttonColors(containerColor = Color.Transparent),
                 contentPadding = PaddingValues(0.dp),
@@ -307,11 +322,9 @@ fun ProductListContent(
                     ProductCard(
                         product = product,
                         onEdit = {
-                            // TODO: Navigate to edit view
-                            Toast.makeText(context, "Edit ${product.name}", Toast.LENGTH_SHORT).show()
+                            navController.navigate("${AppView.UpdateProduct.name}/${product.id}")
                         },
                         onDelete = {
-                            // TODO: Show confirmation dialog
                             productViewModel.deleteProduct(token, product.id)
                             Toast.makeText(context, "Menghapus ${product.name}...", Toast.LENGTH_SHORT).show()
                         }
@@ -340,7 +353,6 @@ fun ProductCard(
                 .padding(16.dp),
             horizontalArrangement = Arrangement.spacedBy(16.dp)
         ) {
-            // Product Image with Coil
             if (product.imageUrl.isNotBlank()) {
                 AsyncImage(
                     model = product.imageUrl,
@@ -351,7 +363,6 @@ fun ProductCard(
                     contentScale = ContentScale.Crop
                 )
             } else {
-                // Placeholder if no image
                 Box(
                     modifier = Modifier
                         .size(80.dp)
@@ -368,7 +379,6 @@ fun ProductCard(
                 }
             }
 
-            // Product Details
             Column(
                 modifier = Modifier.weight(1f),
                 verticalArrangement = Arrangement.spacedBy(4.dp)
@@ -414,7 +424,6 @@ fun ProductCard(
                 }
             }
 
-            // Action Buttons
             Column(
                 verticalArrangement = Arrangement.spacedBy(8.dp)
             ) {
@@ -457,37 +466,16 @@ fun CategoryListContent(
     val categories by categoryViewModel.categories.collectAsState()
     val isLoading by categoryViewModel.isLoading.collectAsState()
     val errorMessage by categoryViewModel.errorMessage.collectAsState()
-    val successMessage by categoryViewModel.successMessage.collectAsState()
 
-    // Fetch categories when the view is displayed
-    LaunchedEffect(Unit) {
-        categoryViewModel.getAllCategories(token)
-    }
-
-    // Show error message if any
     LaunchedEffect(errorMessage) {
-        errorMessage?.let {
-            Toast.makeText(context, it, Toast.LENGTH_SHORT).show()
-            categoryViewModel.clearMessages()
-        }
+        errorMessage?.let { Toast.makeText(context, it, Toast.LENGTH_SHORT).show() }
     }
 
-    // Show success message if any
-    LaunchedEffect(successMessage) {
-        successMessage?.let {
-            Toast.makeText(context, it, Toast.LENGTH_SHORT).show()
-            categoryViewModel.clearMessages()
-        }
-    }
-
-    // Filter categories based on search query
     val filteredCategories = remember(categories, searchQuery) {
         if (searchQuery.isBlank()) {
             categories
         } else {
-            categories.filter {
-                it.name.contains(searchQuery, ignoreCase = true)
-            }
+            categories.filter { it.name.contains(searchQuery, ignoreCase = true) }
         }
     }
 
@@ -496,28 +484,17 @@ fun CategoryListContent(
             .fillMaxSize()
             .padding(horizontal = 24.dp)
     ) {
-        // Header Section
         Row(
             modifier = Modifier.fillMaxWidth(),
             horizontalArrangement = Arrangement.SpaceBetween,
             verticalAlignment = Alignment.CenterVertically
         ) {
             Column {
-                Text(
-                    text = "Kategori",
-                    fontSize = 20.sp,
-                    fontWeight = FontWeight.Bold
-                )
-                Text(
-                    text = "${categories.size} kategori",
-                    fontSize = 14.sp,
-                    color = Color.Gray
-                )
+                Text(text = "Kategori", fontSize = 20.sp, fontWeight = FontWeight.Bold)
+                Text(text = "${categories.size} kategori", fontSize = 14.sp, color = Color.Gray)
             }
-
-            // Tambah Button
             Button(
-                onClick = { navController.navigate("AddCategory") },
+                onClick = { navController.navigate(AppView.AddCategory.name) }, // Fixed this
                 shape = RoundedCornerShape(12.dp),
                 colors = ButtonDefaults.buttonColors(containerColor = Color.Transparent),
                 contentPadding = PaddingValues(0.dp),
@@ -526,11 +503,7 @@ fun CategoryListContent(
                 Box(
                     modifier = Modifier
                         .clip(RoundedCornerShape(12.dp))
-                        .background(
-                            brush = Brush.horizontalGradient(
-                                colors = listOf(Color(0xFF6B9FFF), Color(0xFFBA68C8))
-                            )
-                        )
+                        .background(brush = Brush.horizontalGradient(colors = listOf(Color(0xFF6B9FFF), Color(0xFFBA68C8))))
                         .padding(horizontal = 18.dp, vertical = 10.dp),
                     contentAlignment = Alignment.Center
                 ) {
@@ -538,18 +511,8 @@ fun CategoryListContent(
                         verticalAlignment = Alignment.CenterVertically,
                         horizontalArrangement = Arrangement.spacedBy(8.dp)
                     ) {
-                        Icon(
-                            Icons.Default.Add,
-                            contentDescription = null,
-                            tint = Color.White,
-                            modifier = Modifier.size(20.dp)
-                        )
-                        Text(
-                            text = "Tambah",
-                            color = Color.White,
-                            fontWeight = FontWeight.SemiBold,
-                            fontSize = 15.sp
-                        )
+                        Icon(Icons.Default.Add, contentDescription = null, tint = Color.White, modifier = Modifier.size(20.dp))
+                        Text(text = "Tambah", color = Color.White, fontWeight = FontWeight.SemiBold, fontSize = 15.sp)
                     }
                 }
             }
@@ -557,19 +520,12 @@ fun CategoryListContent(
 
         Spacer(modifier = Modifier.height(16.dp))
 
-        // Search Bar
         OutlinedTextField(
             value = searchQuery,
             onValueChange = { searchQuery = it },
-            modifier = Modifier
-                .fillMaxWidth()
-                .clip(RoundedCornerShape(12.dp)),
-            placeholder = {
-                Text("Cari kategori...", color = Color.Gray, fontSize = 15.sp)
-            },
-            leadingIcon = {
-                Icon(Icons.Default.Search, contentDescription = null, tint = Color.Gray)
-            },
+            modifier = Modifier.fillMaxWidth().clip(RoundedCornerShape(12.dp)),
+            placeholder = { Text("Cari kategori...", color = Color.Gray, fontSize = 15.sp) },
+            leadingIcon = { Icon(Icons.Default.Search, contentDescription = null, tint = Color.Gray) },
             colors = OutlinedTextFieldDefaults.colors(
                 focusedContainerColor = Color.White,
                 unfocusedContainerColor = Color.White,
@@ -581,53 +537,31 @@ fun CategoryListContent(
 
         Spacer(modifier = Modifier.height(16.dp))
 
-        // Loading or Category List
         if (isLoading) {
-            Box(
-                modifier = Modifier.fillMaxSize(),
-                contentAlignment = Alignment.Center
-            ) {
+            Box(modifier = Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
                 CircularProgressIndicator(color = Color(0xFF9333EA))
             }
         } else if (filteredCategories.isEmpty()) {
-            Box(
-                modifier = Modifier.fillMaxSize(),
-                contentAlignment = Alignment.Center
-            ) {
-                Column(
-                    horizontalAlignment = Alignment.CenterHorizontally,
-                    verticalArrangement = Arrangement.spacedBy(8.dp)
-                ) {
+            Box(modifier = Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
+                Column(horizontalAlignment = Alignment.CenterHorizontally, verticalArrangement = Arrangement.spacedBy(8.dp)) {
                     Text(
                         text = if (searchQuery.isBlank()) "Belum ada kategori" else "Kategori tidak ditemukan",
                         fontSize = 16.sp,
                         color = Color.Gray
                     )
                     if (searchQuery.isBlank()) {
-                        Text(
-                            text = "Klik tombol Tambah untuk menambah kategori",
-                            fontSize = 14.sp,
-                            color = Color.LightGray
-                        )
+                        Text(text = "Klik tombol Tambah untuk menambah kategori", fontSize = 14.sp, color = Color.LightGray)
                     }
                 }
             }
         } else {
-            LazyColumn(
-                verticalArrangement = Arrangement.spacedBy(12.dp)
-            ) {
+            LazyColumn(verticalArrangement = Arrangement.spacedBy(12.dp)) {
                 items(filteredCategories, key = { it.id }) { category ->
-                    CategoryCard(
-                        category = category,
-                        onEdit = {
-                            // TODO: Navigate to edit view
-                            Toast.makeText(context, "Edit ${category.name}", Toast.LENGTH_SHORT).show()
-                        },
-                        onDelete = {
-                            categoryViewModel.deleteCategory(token, category.id)
-                            Toast.makeText(context, "Menghapus ${category.name}...", Toast.LENGTH_SHORT).show()
-                        }
-                    )
+                    CategoryCard(category = category, onEdit = {
+                        navController.navigate("${AppView.UpdateCategory.name}/${category.id}")
+                    }, onDelete = {
+                        categoryViewModel.deleteCategory(token, category.id)
+                    })
                 }
             }
         }
@@ -635,11 +569,7 @@ fun CategoryListContent(
 }
 
 @Composable
-fun CategoryCard(
-    category: com.jeruk.alp_frontend.ui.model.Category,
-    onEdit: () -> Unit,
-    onDelete: () -> Unit
-) {
+fun CategoryCard(category: Category, onEdit: () -> Unit, onDelete: () -> Unit) {
     Card(
         modifier = Modifier.fillMaxWidth(),
         shape = RoundedCornerShape(16.dp),
@@ -647,81 +577,17 @@ fun CategoryCard(
         elevation = CardDefaults.cardElevation(2.dp)
     ) {
         Row(
-            modifier = Modifier
-                .fillMaxWidth()
-                .padding(16.dp),
-            horizontalArrangement = Arrangement.spacedBy(16.dp),
-            verticalAlignment = Alignment.CenterVertically
+            modifier = Modifier.padding(16.dp).fillMaxWidth(),
+            verticalAlignment = Alignment.CenterVertically,
+            horizontalArrangement = Arrangement.SpaceBetween
         ) {
-            // Category Icon
-            Box(
-                modifier = Modifier
-                    .size(56.dp)
-                    .clip(RoundedCornerShape(12.dp))
-                    .background(
-                        brush = Brush.linearGradient(
-                            colors = listOf(Color(0xFFBA68C8), Color(0xFF9333EA))
-                        )
-                    ),
-                contentAlignment = Alignment.Center
-            ) {
-                Icon(
-                    imageVector = Icons.Default.LocalOffer,
-                    contentDescription = null,
-                    tint = Color.White,
-                    modifier = Modifier.size(28.dp)
-                )
-            }
-
-            // Category Details
-            Column(
-                modifier = Modifier.weight(1f),
-                verticalArrangement = Arrangement.spacedBy(4.dp)
-            ) {
-                Text(
-                    text = category.name,
-                    fontSize = 16.sp,
-                    fontWeight = FontWeight.Bold
-                )
-                Text(
-                    text = "Berbagai jenis ${category.name.lowercase()}",
-                    fontSize = 13.sp,
-                    color = Color.Gray
-                )
-                // Note: Product count is hardcoded for now
-                Text(
-                    text = "3 produk",
-                    fontSize = 13.sp,
-                    color = Color(0xFF6B9FFF),
-                    fontWeight = FontWeight.SemiBold
-                )
-            }
-
-            // Action Buttons
-            Column(
-                verticalArrangement = Arrangement.spacedBy(8.dp)
-            ) {
-                IconButton(
-                    onClick = onEdit,
-                    modifier = Modifier.size(36.dp)
-                ) {
-                    Icon(
-                        Icons.Default.Edit,
-                        contentDescription = "Edit",
-                        tint = Color(0xFF6B9FFF),
-                        modifier = Modifier.size(20.dp)
-                    )
+            Text(text = category.name, fontWeight = FontWeight.Bold, fontSize = 16.sp)
+            Row {
+                IconButton(onClick = onEdit) {
+                    Icon(Icons.Default.Edit, contentDescription = "Edit", tint = Color(0xFF6B9FFF))
                 }
-                IconButton(
-                    onClick = onDelete,
-                    modifier = Modifier.size(36.dp)
-                ) {
-                    Icon(
-                        Icons.Default.Delete,
-                        contentDescription = "Delete",
-                        tint = Color(0xFFEF4444),
-                        modifier = Modifier.size(20.dp)
-                    )
+                IconButton(onClick = onDelete) {
+                    Icon(Icons.Default.Delete, contentDescription = "Delete", tint = Color(0xFFEF4444))
                 }
             }
         }

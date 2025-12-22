@@ -33,11 +33,13 @@ import com.jeruk.alp_frontend.ui.view.Setting.SettingAdminView
 import com.jeruk.alp_frontend.ui.view.Setting.SettingView
 import com.jeruk.alp_frontend.ui.view.Product.AddProductView
 import com.jeruk.alp_frontend.ui.view.Product.ProductAdminView
+import com.jeruk.alp_frontend.ui.view.Product.UpdateProductView
 import com.jeruk.alp_frontend.ui.view.Category.AddCategoryView
+import com.jeruk.alp_frontend.ui.view.Category.UpdateCategoryView
 import com.jeruk.alp_frontend.ui.view.Toko.CreateTokoView
-import com.jeruk.alp_frontend.ui.view.Toko.UpdateTokoView
 import com.jeruk.alp_frontend.ui.view.Toko.TokoAdminView
 import com.jeruk.alp_frontend.ui.view.Toko.TokoView
+import com.jeruk.alp_frontend.ui.view.Toko.UpdateTokoView
 import com.jeruk.alp_frontend.ui.viewmodel.AuthViewModel
 
 // 1. Model untuk Item di Bottom Bar
@@ -72,60 +74,109 @@ enum class AppView(
     CreateToko("Tambah Toko"),
     UpdateToko("Edit Toko"),
     AddProduct("Tambah Produk"),
-    AddCategory("Tambah Kategori")
+    UpdateProduct("Edit Produk"),
+    AddCategory("Tambah Kategori"),
+    UpdateCategory("Edit Kategori")
 }
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun AppRoute() {
     val navController = rememberNavController()
-    // 1. Inisialisasi AuthViewModel di sini agar state token terjaga selama app jalan
+    // Inisialisasi AuthViewModel di level Root agar token awet
     val authViewModel: AuthViewModel = viewModel()
     val userState by authViewModel.userState.collectAsState()
 
     val navBackStackEntry by navController.currentBackStackEntryAsState()
     val currentRoute = navBackStackEntry?.destination?.route
-    val currentView = AppView.entries.find { it.name == currentRoute } ?: AppView.Welcoming
+    val currentView =
+        AppView.entries.find { it.name?.split("/")?.first() == it.name } ?: AppView.Welcoming
 
     // State Mode Admin
-    val adminRoutes = listOf(AppView.Analysis.name, AppView.AdminToko.name, AppView.AdminProduk.name, AppView.AnalysisDetail.name, AppView.CreateToko.name, AppView.UpdateToko.name, AppView.AddProduct.name)
+    val adminRoutes = listOf(
+        AppView.Analysis.name,
+        AppView.AdminToko.name,
+        AppView.AdminProduk.name,
+        AppView.AnalysisDetail.name,
+        AppView.CreateToko.name,
+        AppView.UpdateToko.name,
+        AppView.AddProduct.name,
+        AppView.UpdateProduct.name,
+        AppView.AddCategory.name,
+        AppView.UpdateCategory.name
+    )
+    val waiterRoutes = listOf(
+        AppView.Home.name
+    )
     var isUserInAdminMode by remember { mutableStateOf(false) }
 
     LaunchedEffect(currentRoute) {
-        if (currentRoute in adminRoutes) isUserInAdminMode = true
-        else if (currentRoute == AppView.Home.name) isUserInAdminMode = false
+        // Cek rute admin (termasuk rute dengan parameter seperti UpdateToko/1)
+        val cleanRoute = currentRoute?.split("/")?.first()
+        if (cleanRoute in adminRoutes) {
+            isUserInAdminMode = true
+        } else if (cleanRoute in waiterRoutes) {
+            isUserInAdminMode = false
+        }
+        // Setting page keeps current mode
     }
 
-    val rootPages = listOf(AppView.Home.name, AppView.Analysis.name, AppView.AdminToko.name, AppView.AdminProduk.name, AppView.Setting.name)
+    val rootPages = listOf(
+        AppView.Home.name,
+        AppView.Analysis.name,
+        AppView.AdminToko.name,
+        AppView.AdminProduk.name,
+        AppView.Setting.name
+    )
+
     val canNavigateBack = currentRoute !in rootPages && navController.previousBackStackEntry != null
 
     Scaffold(
         topBar = {
-            val noHeaderPages = listOf(AppView.Welcoming.name, AppView.Login.name, AppView.Register.name)
-            if (currentRoute !in noHeaderPages && currentRoute != null) {
-                MyTopAppBar(currentView, navController, canNavigateBack)
+            val noHeaderPages =
+                listOf(AppView.Welcoming.name, AppView.Login.name, AppView.Register.name)
+            val currentBaseRoute = currentRoute?.split("/")?.first()
+
+            if (currentBaseRoute !in noHeaderPages && currentRoute != null) {
+                // Cari title berdasarkan enum yang cocok
+                val displayView =
+                    AppView.entries.find { it.name == currentBaseRoute } ?: currentView
+                MyTopAppBar(displayView, navController, canNavigateBack)
             }
         },
         bottomBar = {
             if (currentRoute in rootPages) {
                 val items = if (isUserInAdminMode) {
-                    listOf(BottomNavItem(AppView.Analysis, "Home"), BottomNavItem(AppView.AdminToko, "Toko"), BottomNavItem(AppView.AdminProduk, "Produk"), BottomNavItem(AppView.Setting, "Setting"))
+                    listOf(
+                        BottomNavItem(AppView.Analysis, "Home"),
+                        BottomNavItem(AppView.AdminToko, "Toko"),
+                        BottomNavItem(AppView.AdminProduk, "Produk"),
+                        BottomNavItem(AppView.Setting, "Setting")
+                    )
                 } else {
-                    listOf(BottomNavItem(AppView.Home, "Toko"), BottomNavItem(AppView.Setting, "Setting"))
+                    listOf(
+                        BottomNavItem(AppView.Home, "Toko"),
+                        BottomNavItem(AppView.Setting, "Setting")
+                    )
                 }
                 MyBottomNavigationBar(navController, navBackStackEntry?.destination, items)
             }
         }
     ) { innerPadding ->
-        NavHost(navController, startDestination = AppView.Welcoming.name, modifier = Modifier.padding(innerPadding)) {
-            composable(AppView.Welcoming.name) { WelcomingView { navController.navigate(AppView.Login.name) } }
+        NavHost(
+            navController = navController,
+            startDestination = AppView.Welcoming.name,
+            modifier = Modifier.padding(innerPadding)
+        ) {
+            // --- AUTHENTICATION ---
+            composable(AppView.Welcoming.name) {
+                WelcomingView { navController.navigate(AppView.Login.name) }
+            }
 
             composable(AppView.Login.name) {
                 LoginView(
-                    authViewModel = authViewModel, // Kirim instance yang sama!
-                    onLoginSuccess = {
-                        navController.navigate(AppView.Home.name)
-                    },
+                    authViewModel = authViewModel,
+                    onLoginSuccess = { navController.navigate(AppView.Home.name) },
                     onNavigateToRegister = { navController.navigate(AppView.Register.name) }
                 )
             }
@@ -133,60 +184,88 @@ fun AppRoute() {
             composable(AppView.Register.name) {
                 RegisterView(
                     authViewModel = authViewModel,
-                    onRegisterSuccess = {
-                        navController.navigate(AppView.Home.name)
-                    },
+                    onRegisterSuccess = { navController.navigate(AppView.Home.name) },
                     onNavigateToLogin = { navController.navigate(AppView.Login.name) }
                 )
             }
 
+            // --- WAITER MODE ---
             composable(AppView.Home.name) {
-                // Gunakan token dari userState level atas
                 TokoView(token = userState.token, navController = navController)
             }
 
-            composable(AppView.AdminToko.name) {
-                TokoAdminView(
-                    navController = navController,
-                    authViewModel = authViewModel // Kirim instance yang sudah punya token!
-                )
+            // --- ADMIN MODE: DASHBOARD & TOKO ---
+            composable(AppView.Analysis.name) {
+                AnalysisPageView(navController)
             }
+
+            composable(AppView.AdminToko.name) {
+                TokoAdminView(navController = navController, authViewModel = authViewModel)
+            }
+
+            // Di dalam NavHost AppRoute.kt
             composable(AppView.CreateToko.name) {
-                // KIRIM TOKEN DARI userState KE CreateTokoView
                 CreateTokoView(
                     token = userState.token,
-                    onSuccess = { navController.popBackStack() },
+                    onSuccess = {
+                        // INI HARUS ADA DAN BENAR!
+                        navController.popBackStack()
+                    },
                     navController = navController
                 )
             }
+
             composable("${AppView.UpdateToko.name}/{tokoId}") { backStackEntry ->
-                val tokoId = backStackEntry.arguments?.getString("tokoId")?.toIntOrNull() ?: 0
+                val tokoId = backStackEntry.arguments?.getString("tokoId")?.toInt() ?: 0
                 UpdateTokoView(
                     token = userState.token,
                     tokoId = tokoId,
+                    onSuccess = {
+                        // INI JUGA HARUS ADA!
+                        navController.popBackStack()
+                    },
+                    navController = navController
+                )
+            }
+
+            // --- ADMIN MODE: PRODUCT & CATEGORY ---
+            composable(AppView.AdminProduk.name) {
+                ProductAdminView(navController, token = userState.token)
+            }
+
+            composable(AppView.AddProduct.name) {
+                AddProductView(navController = navController, token = userState.token)
+            }
+
+            composable("${AppView.UpdateProduct.name}/{productId}") { backStackEntry ->
+                val productId = backStackEntry.arguments?.getString("productId")?.toIntOrNull() ?: 0
+                UpdateProductView(
+                    token = userState.token,
+                    productId = productId,
                     onSuccess = { navController.popBackStack() },
                     navController = navController
                 )
             }
 
-            composable(AppView.Analysis.name) { AnalysisPageView(navController) }
-            composable(AppView.AdminProduk.name) { ProductAdminView(navController, token = userState.token) }
-            composable(AppView.AddProduct.name) {
-                AddProductView(
-                    navController = navController,
-                    token = userState.token
-                )
-            }
             composable(AppView.AddCategory.name) {
-                AddCategoryView(
-                    navController = navController,
-                    token = userState.token
+                AddCategoryView(navController = navController, token = userState.token)
+            }
+
+            composable("${AppView.UpdateCategory.name}/{categoryId}") { backStackEntry ->
+                val categoryId = backStackEntry.arguments?.getString("categoryId")?.toIntOrNull() ?: 0
+                UpdateCategoryView(
+                    token = userState.token,
+                    categoryId = categoryId,
+                    onSuccess = { navController.popBackStack() },
+                    navController = navController
                 )
             }
+
+            // --- SETTING ---
             composable(AppView.Setting.name) {
                 if (isUserInAdminMode) {
                     SettingAdminView(
-                        navController,
+                        navController = navController,
                         onLogout = {
                             navController.navigate(AppView.Welcoming.name) {
                                 popUpTo(0) {
@@ -195,25 +274,33 @@ fun AppRoute() {
                             }
                         },
                         onExitAdminMode = {
-                            isUserInAdminMode = false; navController.navigate(AppView.Home.name)
-                        })
+                            isUserInAdminMode = false
+                            navController.navigate(AppView.Home.name) {
+                                popUpTo(AppView.Home.name) {
+                                    inclusive = true
+                                }
+                                launchSingleTop = true
+                            }
+                        }
+                    )
                 } else {
                     SettingView(
-                        navController,
+                        navController = navController,
                         onLogout = {
                             navController.navigate(AppView.Welcoming.name) {
                                 popUpTo(0) {
                                     inclusive = true
                                 }
                             }
-                        })
+                        }
+                    )
                 }
             }
         }
     }
 }
 
-// --- HELPER COMPONENTS (HIG STYLE) ---
+// --- HELPER COMPONENTS ---
 
 @Composable
 fun MyBottomNavigationBar(
@@ -223,7 +310,8 @@ fun MyBottomNavigationBar(
 ) {
     NavigationBar(containerColor = Color.White, tonalElevation = 8.dp) {
         items.forEach { item ->
-            val isSelected = currentDestination?.hierarchy?.any { it.route == item.view.name } == true
+            val isSelected =
+                currentDestination?.hierarchy?.any { it.route == item.view.name } == true
             NavigationBarItem(
                 selected = isSelected,
                 onClick = {
