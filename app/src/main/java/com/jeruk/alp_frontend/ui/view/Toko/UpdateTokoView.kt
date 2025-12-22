@@ -41,7 +41,7 @@ fun UpdateTokoView(
     tokoViewModel: TokoViewModel = viewModel()
 ) {
     val context = LocalContext.current
-    val selectedToko by tokoViewModel.selectedToko.collectAsState()
+    val selectedToko by tokoViewModel.currentToko.collectAsState()
     val isSuccess by tokoViewModel.isSuccess.collectAsState()
     val isLoading by tokoViewModel.isLoading.collectAsState()
 
