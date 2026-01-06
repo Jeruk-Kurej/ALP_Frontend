@@ -269,18 +269,25 @@ fun AppRoute() {
                         navController = navController,
                         onLogout = {
                             navController.navigate(AppView.Welcoming.name) {
-                                popUpTo(0) {
-                                    inclusive = true
-                                }
+                                popUpTo(0) { inclusive = true }
                             }
                         },
                         onExitAdminMode = {
+                            // 1. Matikan Mode Admin
                             isUserInAdminMode = false
+
+                            // 2. Navigasi Pindah Tab yang BENAR
                             navController.navigate(AppView.Home.name) {
-                                popUpTo(AppView.Home.name) {
-                                    inclusive = true
+                                // Pop up ke Root (Welcoming) agar behavior sama seperti klik BottomBar
+                                popUpTo(navController.graph.findStartDestination().id) {
+                                    // PENTING: saveState = false
+                                    // Kita TIDAK mau menyimpan state halaman Admin ini.
+                                    // Biar nanti kalau balik ke Setting, halamannya fresh/reset.
+                                    saveState = false
                                 }
                                 launchSingleTop = true
+                                restoreState =
+                                    true // Mengembalikan state Home yang lama (yang di-stash)
                             }
                         }
                     )
