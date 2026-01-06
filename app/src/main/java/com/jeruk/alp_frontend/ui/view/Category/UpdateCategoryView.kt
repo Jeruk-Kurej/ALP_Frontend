@@ -1,22 +1,30 @@
 package com.jeruk.alp_frontend.ui.view.Category
 
+import android.widget.Toast
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.verticalScroll
+import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.filled.Description
+import androidx.compose.material.icons.filled.Label
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
-import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.vector.ImageVector
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.lifecycle.viewmodel.compose.viewModel
 import androidx.navigation.NavController
 import com.jeruk.alp_frontend.ui.viewmodel.CategoryViewModel
+
+// --- COLORS ---
+private val BrandPrimary = Color(0xFF4F46E5)
+private val BrandBackground = Color(0xFFF8FAFC)
 
 @Composable
 fun UpdateCategoryView(
@@ -26,161 +34,158 @@ fun UpdateCategoryView(
     navController: NavController,
     categoryViewModel: CategoryViewModel = viewModel()
 ) {
-    // 1. State dari ViewModel (Sama seperti Product)
+    val context = LocalContext.current
+
+    // State Data
     val selectedCategory by categoryViewModel.selectedCategory.collectAsState()
     val isLoading by categoryViewModel.isLoading.collectAsState()
-    val errorMessage by categoryViewModel.errorMessage.collectAsState()
-
-    // Pastikan kamu sudah menambahkan 'isSuccess' di CategoryViewModel ya!
     val isSuccess by categoryViewModel.isSuccess.collectAsState()
 
     // Form State
     var categoryName by remember { mutableStateOf("") }
+    var categoryDescription by remember { mutableStateOf("") } // Sudah ditambahkan
 
-    // 2. Load Data Awal
+    // Load Data Awal
     LaunchedEffect(Unit) {
-        categoryViewModel.clearMessages() // Reset state dulu
+        categoryViewModel.clearMessages()
         categoryViewModel.getCategoryById(token, categoryId)
     }
 
-    // 3. Pre-fill Form (Sama persis logic Product)
+    // Isi Form saat data didapat
     LaunchedEffect(selectedCategory) {
-        selectedCategory?.let { category ->
-            categoryName = category.name
+        selectedCategory?.let {
+            categoryName = it.name
+            // Jika nanti backend sudah support deskripsi, bisa di-uncomment baris bawah ini:
+            // categoryDescription = it.description ?: ""
         }
     }
 
-    // 4. Handle Success (Trigger navigasi hanya kalau API sukses)
+    // Handle Sukses Update
     LaunchedEffect(isSuccess) {
         if (isSuccess) {
+            Toast.makeText(context, "Kategori berhasil diupdate!", Toast.LENGTH_SHORT).show()
             onSuccess()
             categoryViewModel.clearMessages()
         }
     }
 
-    // Cleanup saat keluar layar
-    DisposableEffect(Unit) {
-        onDispose {
-            categoryViewModel.clearMessages()
-        }
-    }
-
+    // --- MAIN LAYOUT ---
     Column(
         modifier = Modifier
             .fillMaxSize()
-            .background(Color(0xFFF5F5F7))
-            .verticalScroll(rememberScrollState())
-            .padding(24.dp)
+            .background(BrandBackground)
     ) {
-        // --- FORM INPUT ---
-        Text(
-            text = "Nama Kategori",
-            fontSize = 14.sp,
-            fontWeight = FontWeight.SemiBold,
-            color = Color(0xFF475569),
-            modifier = Modifier.padding(bottom = 8.dp)
-        )
-        OutlinedTextField(
-            value = categoryName,
-            onValueChange = { categoryName = it },
-            modifier = Modifier.fillMaxWidth(),
-            placeholder = { Text("Masukkan nama kategori") },
-            shape = RoundedCornerShape(12.dp),
-            colors = OutlinedTextFieldDefaults.colors(
-                unfocusedBorderColor = Color(0xFFE2E8F0),
-                focusedBorderColor = Color(0xFF3B82F6),
-                unfocusedContainerColor = Color.White,
-                focusedContainerColor = Color.White
-            ),
-            singleLine = true
-        )
+        // CONTENT
+        Column(
+            modifier = Modifier
+                .weight(1f)
+                .verticalScroll(rememberScrollState())
+                .padding(20.dp),
+            verticalArrangement = Arrangement.spacedBy(20.dp)
+        ) {
+            UpdateCategorySectionCard(title = "Edit Kategori") {
+                // 1. Nama Kategori
+                UpdateCategoryCustomTextField(
+                    value = categoryName,
+                    onValueChange = { categoryName = it },
+                    label = "Nama Kategori",
+                    placeholder = "Nama kategori...",
+                    icon = Icons.Default.Label
+                )
 
-        Spacer(modifier = Modifier.height(24.dp))
-
-        // --- ERROR CARD ---
-        if (errorMessage != null) {
-            Card(
-                modifier = Modifier.fillMaxWidth(),
-                colors = CardDefaults.cardColors(containerColor = Color(0xFFFEE2E2)),
-                shape = RoundedCornerShape(12.dp)
-            ) {
-                Text(
-                    text = errorMessage ?: "Terjadi kesalahan",
-                    color = Color(0xFFDC2626),
-                    fontSize = 14.sp,
-                    modifier = Modifier.padding(12.dp)
+                // 2. Deskripsi (Sudah ditambahkan)
+                UpdateCategoryCustomTextField(
+                    value = categoryDescription,
+                    onValueChange = { categoryDescription = it },
+                    label = "Deskripsi",
+                    placeholder = "Deskripsi kategori...",
+                    icon = Icons.Default.Description,
+                    singleLine = false,
+                    modifier = Modifier.height(120.dp)
                 )
             }
-            Spacer(modifier = Modifier.height(16.dp))
         }
 
-        // --- BUTTON UPDATE ---
-        Button(
-            onClick = {
-                // Logic disini bersih, cuma panggil ViewModel
-                categoryViewModel.updateCategory(token, categoryId, categoryName)
-            },
-            enabled = !isLoading && categoryName.isNotBlank(),
-            modifier = Modifier
-                .fillMaxWidth()
-                .height(56.dp),
-            shape = RoundedCornerShape(12.dp),
-            colors = ButtonDefaults.buttonColors(
-                containerColor = Color.Transparent,
-                disabledContainerColor = Color(0xFFE2E8F0)
-            ),
-            contentPadding = PaddingValues(0.dp)
+        // BOTTOM ACTION
+        Surface(
+            modifier = Modifier.fillMaxWidth(),
+            shadowElevation = 8.dp,
+            color = Color.White
         ) {
-            Box(
-                modifier = Modifier
-                    .fillMaxSize()
-                    .background(
-                        brush = if (!isLoading && categoryName.isNotBlank()) {
-                            Brush.horizontalGradient(
-                                colors = listOf(Color(0xFF10B981), Color(0xFF059669)) // Warna Hijau Khas Category
-                            )
-                        } else {
-                            Brush.horizontalGradient(
-                                colors = listOf(Color(0xFFE2E8F0), Color(0xFFE2E8F0))
-                            )
+            Box(modifier = Modifier.padding(16.dp)) {
+                Button(
+                    onClick = {
+                        if (categoryName.isBlank()) {
+                            Toast.makeText(context, "Nama kategori tidak boleh kosong", Toast.LENGTH_SHORT).show()
+                            return@Button
                         }
-                    ),
-                contentAlignment = Alignment.Center
-            ) {
-                if (isLoading) {
-                    CircularProgressIndicator(
-                        color = Color.White,
-                        modifier = Modifier.size(24.dp)
-                    )
-                } else {
-                    Text(
-                        text = "Simpan Perubahan",
-                        fontSize = 16.sp,
-                        fontWeight = FontWeight.Bold,
-                        color = if (categoryName.isNotBlank()) Color.White else Color(0xFF94A3B8)
-                    )
+                        // Update Action (Description dikirim jika backend support, jika tidak biarkan seperti ini)
+                        categoryViewModel.updateCategory(token, categoryId, categoryName)
+                    },
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .height(50.dp),
+                    shape = RoundedCornerShape(12.dp),
+                    colors = ButtonDefaults.buttonColors(containerColor = BrandPrimary),
+                    enabled = !isLoading
+                ) {
+                    if (isLoading) CircularProgressIndicator(color = Color.White, modifier = Modifier.size(24.dp))
+                    else Text("Simpan Perubahan", fontWeight = FontWeight.Bold)
                 }
             }
         }
+    }
+}
 
-        Spacer(modifier = Modifier.height(12.dp))
+// --- HELPER COMPONENTS ---
 
-        // --- BUTTON BATAL ---
-        OutlinedButton(
-            onClick = { navController.popBackStack() },
-            modifier = Modifier
-                .fillMaxWidth()
-                .height(56.dp),
-            shape = RoundedCornerShape(12.dp),
-            colors = ButtonDefaults.outlinedButtonColors(
-                contentColor = Color(0xFF64748B)
-            )
+@Composable
+fun UpdateCategorySectionCard(title: String, content: @Composable ColumnScope.() -> Unit) {
+    Card(
+        modifier = Modifier.fillMaxWidth(),
+        shape = RoundedCornerShape(16.dp),
+        colors = CardDefaults.cardColors(containerColor = Color.White),
+        elevation = CardDefaults.cardElevation(0.dp),
+        border = androidx.compose.foundation.BorderStroke(1.dp, Color(0xFFE2E8F0))
+    ) {
+        Column(
+            modifier = Modifier.padding(20.dp),
+            verticalArrangement = Arrangement.spacedBy(16.dp)
         ) {
-            Text(
-                text = "Batal",
-                fontSize = 16.sp,
-                fontWeight = FontWeight.SemiBold
-            )
+            Text(title, fontSize = 16.sp, fontWeight = FontWeight.Bold, color = Color(0xFF1E293B))
+            content()
         }
+    }
+}
+
+@Composable
+fun UpdateCategoryCustomTextField(
+    value: String,
+    onValueChange: (String) -> Unit,
+    label: String,
+    placeholder: String = "",
+    icon: ImageVector? = null,
+    singleLine: Boolean = true,
+    modifier: Modifier = Modifier
+) {
+    Column(verticalArrangement = Arrangement.spacedBy(6.dp), modifier = modifier) {
+        Text(label, fontSize = 13.sp, fontWeight = FontWeight.Medium, color = Color(0xFF64748B))
+        OutlinedTextField(
+            value = value,
+            onValueChange = onValueChange,
+            placeholder = { Text(placeholder, color = Color(0xFF94A3B8), fontSize = 14.sp) },
+            leadingIcon = if (icon != null) {
+                { Icon(icon, contentDescription = null, tint = Color(0xFF94A3B8), modifier = Modifier.size(18.dp)) }
+            } else null,
+            modifier = Modifier.fillMaxWidth(),
+            shape = RoundedCornerShape(10.dp),
+            colors = OutlinedTextFieldDefaults.colors(
+                focusedContainerColor = Color.White,
+                unfocusedContainerColor = Color.White,
+                focusedBorderColor = Color(0xFF4F46E5),
+                unfocusedBorderColor = Color(0xFFE2E8F0),
+            ),
+            singleLine = singleLine
+        )
     }
 }
