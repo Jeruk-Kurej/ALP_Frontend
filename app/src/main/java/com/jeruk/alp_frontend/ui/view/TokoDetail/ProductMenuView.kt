@@ -156,8 +156,7 @@ fun ProductMenuView(
                 FloatingCartButton(
                     itemCount = totalItems,
                     onClick = {
-                        // GANTI string "order_page" MENJADI:
-                        navController.navigate(com.jeruk.alp_frontend.ui.route.AppView.OrderPage.name)
+                        navController.navigate("${com.jeruk.alp_frontend.ui.route.AppView.OrderPage.name}/$token/$tokoId")
                     }
                 )
             }

@@ -27,7 +27,9 @@ import java.util.Locale
 @Composable
 fun PaymentPageView(
     navController: NavController,
-    productViewModel: ProductViewModel = viewModel()
+    productViewModel: ProductViewModel = viewModel(),
+    token: String,
+    tokoId: Int
 ) {
     // --- DATA AMBIL DARI VIEWMODEL ---
     val cartItems by productViewModel.cartItems.collectAsState()
@@ -101,7 +103,7 @@ fun PaymentPageView(
             iconBgColor = Color(0xFFF5F3FF), // Background ungu muda
             iconTintColor = Color(0xFF8B5CF6), // Ikon ungu
             onClick = {
-                navController.navigate("QRISPage")
+                navController.navigate("QRISPage/$token/$tokoId")
             }
         )
 
@@ -114,7 +116,7 @@ fun PaymentPageView(
             iconBgColor = Color(0xFFF0FDF4), // Background hijau muda
             iconTintColor = Color(0xFF22C55E), // Ikon hijau
             onClick = {
-                navController.navigate("CashPage")
+                navController.navigate("CashPage/$token/$tokoId")
             }
         )
     }

@@ -17,13 +17,18 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.lifecycle.viewmodel.compose.viewModel
 import androidx.navigation.NavController
+import com.jeruk.alp_frontend.data.service.OrderItemRequest
 import com.jeruk.alp_frontend.ui.route.AppView
+import com.jeruk.alp_frontend.ui.viewmodel.OrderViewModel
 import com.jeruk.alp_frontend.ui.viewmodel.ProductViewModel
 
 @Composable
 fun QRISPageView(
     navController: NavController,
-    productViewModel: ProductViewModel = viewModel()
+    productViewModel: ProductViewModel,
+    orderViewModel: OrderViewModel,
+    token: String,
+    tokoId: Int
 ) {
     val cartItems by productViewModel.cartItems.collectAsState()
     val products by productViewModel.products.collectAsState()
@@ -103,11 +108,49 @@ fun QRISPageView(
                 )
                 Spacer(modifier = Modifier.height(32.dp))
 
+                // LaunchedEffect untuk observe isSuccess
+                val isSuccess by orderViewModel.isSuccess.collectAsState()
+                val isLoading by orderViewModel.isLoading.collectAsState()
+                val errorMessage by orderViewModel.errorMessage.collectAsState()
+
+                LaunchedEffect(isSuccess) {
+                    if (isSuccess) {
+                        productViewModel.clearCart()
+                        orderViewModel.resetSuccess()
+                        navController.navigate(AppView.SuccessPage.name) {
+                            popUpTo(AppView.ProductMenu.name) { inclusive = false }
+                        }
+                    }
+                }
+
+                // Show error if any
+                errorMessage?.let { error ->
+                    Text(
+                        text = error,
+                        color = Color(0xFFEF4444),
+                        fontSize = 12.sp,
+                        modifier = Modifier.padding(bottom = 8.dp)
+                    )
+                }
+
                 // Tombol Pembayaran Selesai
                 Button(
                     onClick = {
-                        navController.navigate(AppView.SuccessPage.name)
+                        val orderItems =
+                            products.filter { cartItems.containsKey(it.id) }.map { product ->
+                                OrderItemRequest(
+                                    productId = product.id,
+                                    amount = (cartItems[product.id] ?: 0)
+                                )
+                            }
+                        orderViewModel.createOrder(
+                            token = token,
+                            customerName = "Walk-in Customer",
+                            paymentId = 1, tokoId = tokoId,
+                            orderItems = orderItems
+                        )
                     },
+                    enabled = !isLoading,
                     modifier = Modifier
                         .fillMaxWidth()
                         .height(56.dp),
@@ -119,11 +162,28 @@ fun QRISPageView(
                         modifier = Modifier
                             .fillMaxSize()
                             .background(
-                                Brush.horizontalGradient(listOf(Color(0xFF60A5FA), Color(0xFFC084FC)))
+                                Brush.horizontalGradient(
+                                    listOf(
+                                        Color(0xFF60A5FA),
+                                        Color(0xFFC084FC)
+                                    )
+                                )
                             ),
                         contentAlignment = Alignment.Center
                     ) {
-                        Text("Pembayaran Selesai", color = Color.White, fontWeight = FontWeight.Bold, fontSize = 16.sp)
+                        if (isLoading) {
+                            CircularProgressIndicator(
+                                modifier = Modifier.size(24.dp),
+                                color = Color.White
+                            )
+                        } else {
+                            Text(
+                                "Pembayaran Selesai",
+                                color = Color.White,
+                                fontWeight = FontWeight.Bold,
+                                fontSize = 16.sp
+                            )
+                        }
                     }
                 }
             }

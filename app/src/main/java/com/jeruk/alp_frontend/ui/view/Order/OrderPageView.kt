@@ -34,7 +34,9 @@ import java.util.Locale
 @Composable
 fun OrderPageView(
     navController: NavController,
-    productViewModel: ProductViewModel = viewModel()
+    productViewModel: ProductViewModel = viewModel(),
+    token: String,
+    tokoId: Int
 ) {
     // --- DATA ---
     val cartItems by productViewModel.cartItems.collectAsState()
@@ -98,7 +100,7 @@ fun OrderPageView(
                 tax = tax,
                 grandTotal = grandTotal,
                 onCheckout = {
-                    navController.navigate(AppView.PaymentPage.name) // Ganti route ke page baru
+                    navController.navigate("${AppView.PaymentPage.name}/$token/$tokoId")
                 }
             )
         }

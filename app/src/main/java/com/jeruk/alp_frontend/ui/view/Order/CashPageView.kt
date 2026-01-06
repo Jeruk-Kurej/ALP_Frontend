@@ -18,8 +18,11 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import androidx.lifecycle.viewmodel.compose.viewModel
 import androidx.navigation.NavController
+import com.jeruk.alp_frontend.data.service.OrderItemRequest
 import com.jeruk.alp_frontend.ui.route.AppView
+import com.jeruk.alp_frontend.ui.viewmodel.OrderViewModel
 import com.jeruk.alp_frontend.ui.viewmodel.ProductViewModel
 import java.text.NumberFormat
 import java.util.Locale
@@ -28,7 +31,10 @@ import java.util.Locale
 @Composable
 fun CashPageView(
     navController: NavController,
-    productViewModel: ProductViewModel
+    productViewModel: ProductViewModel,
+    orderViewModel: OrderViewModel,
+    token: String,
+    tokoId: Int
 ) {
     val cartItems by productViewModel.cartItems.collectAsState()
     val products by productViewModel.products.collectAsState()
@@ -64,7 +70,12 @@ fun CashPageView(
         ) {
             Column {
                 Text("Total Pembayaran", color = Color.White.copy(alpha = 0.8f), fontSize = 14.sp)
-                Text(formatRupiah(grandTotal), color = Color.White, fontSize = 28.sp, fontWeight = FontWeight.Bold)
+                Text(
+                    formatRupiah(grandTotal),
+                    color = Color.White,
+                    fontSize = 28.sp,
+                    fontWeight = FontWeight.Bold
+                )
             }
         }
 
@@ -120,8 +131,18 @@ fun CashPageView(
                             .padding(16.dp)
                     ) {
                         Column {
-                            Text(statusLabel, color = statusColor, fontSize = 14.sp, fontWeight = FontWeight.Medium)
-                            Text(formatRupiah(kotlin.math.abs(change)), color = statusColor, fontSize = 18.sp, fontWeight = FontWeight.Bold)
+                            Text(
+                                statusLabel,
+                                color = statusColor,
+                                fontSize = 14.sp,
+                                fontWeight = FontWeight.Medium
+                            )
+                            Text(
+                                formatRupiah(kotlin.math.abs(change)),
+                                color = statusColor,
+                                fontSize = 18.sp,
+                                fontWeight = FontWeight.Bold
+                            )
                         }
                     }
                 }
@@ -130,20 +151,70 @@ fun CashPageView(
 
         Spacer(modifier = Modifier.weight(1f))
 
+        // LaunchedEffect untuk observe isSuccess
+        val isSuccess by orderViewModel.isSuccess.collectAsState()
+        val isLoading by orderViewModel.isLoading.collectAsState()
+        val errorMessage by orderViewModel.errorMessage.collectAsState()
+
+        LaunchedEffect(isSuccess) {
+            if (isSuccess) {
+                productViewModel.clearCart()
+                orderViewModel.resetSuccess()
+                navController.navigate(AppView.SuccessPage.name) {
+                    popUpTo(AppView.ProductMenu.name) { inclusive = false }
+                }
+            }
+        }
+
+        // Show error if any
+        errorMessage?.let { error ->
+            Text(
+                text = error,
+                color = Color.Red,
+                fontSize = 12.sp,
+                modifier = Modifier.padding(bottom = 8.dp)
+            )
+        }
+
         // Tombol Selesaikan
         Button(
             onClick = {
-                navController.navigate(AppView.SuccessPage.name)
+                val orderItems = products.filter { cartItems.containsKey(it.id) }.map { product ->
+                    OrderItemRequest(
+                        productId = product.id,
+                        amount = (cartItems[product.id] ?: 0)                    )
+                }
+
+                orderViewModel.createOrder(
+                    token = token,
+                    customerName = "Walk-in Customer",
+                    paymentId = 2,
+                    tokoId = tokoId, orderItems = orderItems
+                )
             },
-            enabled = cashAmount >= grandTotal,
-            modifier = Modifier.fillMaxWidth().height(56.dp),
+            enabled = cashAmount >= grandTotal && !isLoading,
+            modifier = Modifier
+                .fillMaxWidth()
+                .height(56.dp),
             shape = RoundedCornerShape(16.dp),
             colors = ButtonDefaults.buttonColors(
                 containerColor = Color(0xFFC084FC),
                 disabledContainerColor = Color(0xFFE5E7EB)
             )
         ) {
-            Text("Selesaikan Pembayaran", fontSize = 16.sp, fontWeight = FontWeight.Bold, color = Color.White)
+            if (isLoading) {
+                CircularProgressIndicator(
+                    modifier = Modifier.size(24.dp),
+                    color = Color.White
+                )
+            } else {
+                Text(
+                    "Selesaikan Pembayaran",
+                    fontSize = 16.sp,
+                    fontWeight = FontWeight.Bold,
+                    color = Color.White
+                )
+            }
         }
     }
 }

@@ -1,5 +1,6 @@
 package com.jeruk.alp_frontend.ui.route
 
+import androidx.activity.compose.BackHandler
 import androidx.compose.foundation.layout.padding
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
@@ -49,6 +50,7 @@ import com.jeruk.alp_frontend.ui.view.Toko.TokoView
 import com.jeruk.alp_frontend.ui.view.Toko.UpdateTokoView
 import com.jeruk.alp_frontend.ui.view.WelcomingView
 import com.jeruk.alp_frontend.ui.viewmodel.AuthViewModel
+import com.jeruk.alp_frontend.ui.viewmodel.OrderViewModel
 import com.jeruk.alp_frontend.ui.viewmodel.ProductViewModel
 
 // 1. Model untuk Item di Bottom Bar
@@ -103,6 +105,7 @@ fun AppRoute() {
     val authViewModel: AuthViewModel = viewModel()
     // 🔥 PENTING: Inisialisasi di sini agar Cart data tersimpan saat pindah page
     val productViewModel: ProductViewModel = viewModel()
+    val orderViewModel: OrderViewModel = viewModel()
 
     val userState by authViewModel.userState.collectAsState()
     val navBackStackEntry by navController.currentBackStackEntryAsState()
@@ -145,8 +148,13 @@ fun AppRoute() {
 
     Scaffold(
         topBar = {
-            val noHeaderPages =
-                listOf(AppView.Welcoming.name, AppView.Login.name, AppView.Register.name)
+            // PERBAIKAN 1: Tambahkan SuccessPage di sini agar Header TIDAK MUNCUL
+            val noHeaderPages = listOf(
+                AppView.Welcoming.name,
+                AppView.Login.name,
+                AppView.Register.name,
+                AppView.SuccessPage.name // <--- TopBar disembunyikan di halaman Success
+            )
             val currentBaseRoute = currentRoute?.split("/")?.first()
 
             if (currentBaseRoute !in noHeaderPages && currentRoute != null) {
@@ -234,32 +242,84 @@ fun AppRoute() {
                 )
             }
 
-            composable(AppView.OrderPage.name) {
+            composable(
+                route = "${AppView.OrderPage.name}/{token}/{tokoId}",
+                arguments = listOf(
+                    navArgument("token") { type = NavType.StringType },
+                    navArgument("tokoId") { type = NavType.IntType }
+                )
+            ) { backStackEntry ->
+                val token = backStackEntry.arguments?.getString("token") ?: ""
+                val tokoId = backStackEntry.arguments?.getInt("tokoId") ?: 0
                 OrderPageView(
                     navController = navController,
-                    productViewModel = productViewModel // 🔥 Share ViewModel
+                    productViewModel = productViewModel,
+                    token = token,
+                    tokoId = tokoId
                 )
             }
 
-            composable(AppView.PaymentPage.name) {
+            composable(
+                route = "${AppView.PaymentPage.name}/{token}/{tokoId}",
+                arguments = listOf(
+                    navArgument("token") { type = NavType.StringType },
+                    navArgument("tokoId") { type = NavType.IntType }
+                )
+            ) { backStackEntry ->
+                val token = backStackEntry.arguments?.getString("token") ?: ""
+                val tokoId = backStackEntry.arguments?.getInt("tokoId") ?: 0
                 PaymentPageView(
                     navController = navController,
-                    productViewModel = productViewModel
+                    productViewModel = productViewModel,
+                    token = token,
+                    tokoId = tokoId
                 )
             }
 
-            composable(AppView.QRISPage.name) {
+            composable(
+                route = "QRISPage/{token}/{tokoId}",
+                arguments = listOf(
+                    navArgument("token") { type = NavType.StringType },
+                    navArgument("tokoId") { type = NavType.IntType }
+                )
+            ) { backStackEntry ->
+                val token = backStackEntry.arguments?.getString("token") ?: ""
+                val tokoId = backStackEntry.arguments?.getInt("tokoId") ?: 0
                 QRISPageView(
-                    navController,
-                    productViewModel
+                    navController = navController,
+                    productViewModel = productViewModel,
+                    orderViewModel = orderViewModel,
+                    token = token,
+                    tokoId = tokoId
                 )
             }
 
-            composable(AppView.CashPage.name) {
-                CashPageView(navController, productViewModel)
+            composable(
+                route = "CashPage/{token}/{tokoId}",
+                arguments = listOf(
+                    navArgument("token") { type = NavType.StringType },
+                    navArgument("tokoId") { type = NavType.IntType }
+                )
+            ) { backStackEntry ->
+                val token = backStackEntry.arguments?.getString("token") ?: ""
+                val tokoId = backStackEntry.arguments?.getInt("tokoId") ?: 0
+                CashPageView(
+                    navController = navController,
+                    productViewModel = productViewModel,
+                    orderViewModel = orderViewModel,
+                    token = token,
+                    tokoId = tokoId
+                )
             }
 
             composable(AppView.SuccessPage.name) {
+                // PERBAIKAN 2: Blokir tombol Back HP saat di halaman Sukses/Loading
+                BackHandler(enabled = true) {
+                    // Jika user tekan Back, paksa kembali ke Home (reset flow)
+                    navController.navigate(AppView.Home.name) {
+                        popUpTo(AppView.Home.name) { inclusive = true }
+                    }
+                }
                 SuccessPageView(navController, productViewModel)
             }
 
