@@ -50,15 +50,20 @@ fun LoginView(
     var username by remember { mutableStateOf("") }
     var password by remember { mutableStateOf("") }
     var passwordVisible by remember { mutableStateOf(false) }
+    var hasAttemptedLogin by remember { mutableStateOf(false) }
 
     LaunchedEffect(userState) {
-        if (userState.token.isNotEmpty()) {
+        // FIXED: Only auto-navigate if user has actually clicked login button
+        // This prevents auto-login when returning to login screen after logout
+        if (userState.token.isNotEmpty() && hasAttemptedLogin) {
             Toast.makeText(context, "Login Berhasil!", Toast.LENGTH_SHORT).show()
             onLoginSuccess()
+            hasAttemptedLogin = false // Reset for next time
         }
         if (userState.isError) {
             Toast.makeText(context, userState.errorMessage, Toast.LENGTH_LONG).show()
             authViewModel.resetError() // Reset agar tidak muncul Toast berulang
+            hasAttemptedLogin = false // Reset on error
         }
     }
 
@@ -194,7 +199,10 @@ fun LoginView(
 
                     // Login Button
                     Button(
-                        onClick = { authViewModel.login(username, password) },
+                        onClick = {
+                            hasAttemptedLogin = true
+                            authViewModel.login(username, password)
+                        },
                         enabled = !isLoading,
                         modifier = Modifier
                             .fillMaxWidth()

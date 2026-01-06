@@ -1,5 +1,6 @@
 package com.jeruk.alp_frontend.ui.viewmodel
 
+import android.util.Log
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.jeruk.alp_frontend.data.container.AppContainer
@@ -8,6 +9,8 @@ import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.launch
 import java.io.IOException
+import java.net.SocketTimeoutException
+import java.net.UnknownHostException
 
 class AuthViewModel : ViewModel() {
 
@@ -26,15 +29,30 @@ class AuthViewModel : ViewModel() {
         viewModelScope.launch {
             _isLoading.value = true
             try {
-                // Pastikan repository.loginUser juga menerima parameter username
+                Log.d("AuthViewModel", "Attempting login for: $username")
                 val result = repository.loginUser(username, pass)
                 _userState.value = result
-            } catch (e: IOException) {
+                Log.d("AuthViewModel", "Login successful")
+            } catch (e: SocketTimeoutException) {
+                Log.e("AuthViewModel", "Login timeout", e)
                 _userState.value = User(
                     isError = true,
-                    errorMessage = "Tidak ada koneksi internet."
+                    errorMessage = "Koneksi timeout. Periksa koneksi internet Anda."
+                )
+            } catch (e: UnknownHostException) {
+                Log.e("AuthViewModel", "Unknown host", e)
+                _userState.value = User(
+                    isError = true,
+                    errorMessage = "Tidak dapat terhubung ke server. Periksa koneksi internet."
+                )
+            } catch (e: IOException) {
+                Log.e("AuthViewModel", "IO error", e)
+                _userState.value = User(
+                    isError = true,
+                    errorMessage = "Tidak ada koneksi internet atau server tidak dapat dijangkau."
                 )
             } catch (e: Exception) {
+                Log.e("AuthViewModel", "Login error", e)
                 _userState.value = User(
                     isError = true,
                     errorMessage = e.message ?: "Login gagal. Cek username/password."
@@ -50,17 +68,33 @@ class AuthViewModel : ViewModel() {
         viewModelScope.launch {
             _isLoading.value = true
             try {
+                Log.d("AuthViewModel", "Attempting registration for: $username, email: $email")
                 val result = repository.registerUser(username, email, pass)
                 _userState.value = result
-            } catch (e: IOException) {
+                Log.d("AuthViewModel", "Registration successful")
+            } catch (e: SocketTimeoutException) {
+                Log.e("AuthViewModel", "Registration timeout", e)
                 _userState.value = User(
                     isError = true,
-                    errorMessage = "Tidak ada koneksi internet."
+                    errorMessage = "Koneksi timeout. Periksa koneksi internet Anda."
+                )
+            } catch (e: UnknownHostException) {
+                Log.e("AuthViewModel", "Unknown host", e)
+                _userState.value = User(
+                    isError = true,
+                    errorMessage = "Tidak dapat terhubung ke server. Periksa koneksi internet."
+                )
+            } catch (e: IOException) {
+                Log.e("AuthViewModel", "IO error", e)
+                _userState.value = User(
+                    isError = true,
+                    errorMessage = "Tidak ada koneksi internet atau server tidak dapat dijangkau."
                 )
             } catch (e: Exception) {
+                Log.e("AuthViewModel", "Registration error", e)
                 _userState.value = User(
                     isError = true,
-                    errorMessage = e.message ?: "Registrasi gagal."
+                    errorMessage = e.message ?: "Registrasi gagal. Silakan coba lagi."
                 )
             } finally {
                 _isLoading.value = false

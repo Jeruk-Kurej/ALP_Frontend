@@ -22,6 +22,7 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.lifecycle.viewmodel.compose.viewModel
 import androidx.navigation.NavController
+import com.jeruk.alp_frontend.ui.route.AppView
 import com.jeruk.alp_frontend.ui.viewmodel.TokoViewModel
 
 @Composable
@@ -57,7 +58,11 @@ fun TokoView(
                 horizontalAlignment = Alignment.CenterHorizontally,
                 verticalArrangement = Arrangement.Center
             ) {
-                Text("Belum ada toko yang tersedia", fontWeight = FontWeight.Bold, color = Color.Gray)
+                Text(
+                    "Belum ada toko yang tersedia",
+                    fontWeight = FontWeight.Bold,
+                    color = Color.Gray
+                )
             }
         } else {
             // --- LIST TOKO ---
@@ -67,10 +72,8 @@ fun TokoView(
                 verticalArrangement = Arrangement.spacedBy(16.dp) // Spasi lega ala HIG
             ) {
                 items(tokos) { item ->
-                    // Panggil file yang baru kita pisah tadi!
                     TokoCardView(toko = item) {
-                        // Navigasi ke produk toko ini
-                        navController.navigate("ProductMenu/${item.id}")
+                        navController.navigate("${AppView.ProductMenu.name}/${item.id}/${item.name}/${item.address}")
                     }
                 }
                 item { Spacer(modifier = Modifier.height(24.dp)) }
@@ -95,10 +98,24 @@ fun TokoBannerHeader() {
         contentAlignment = Alignment.Center
     ) {
         Column(horizontalAlignment = Alignment.CenterHorizontally) {
-            Icon(Icons.Default.Storefront, null, tint = Color.White, modifier = Modifier.size(64.dp))
+            Icon(
+                Icons.Default.Storefront,
+                null,
+                tint = Color.White,
+                modifier = Modifier.size(64.dp)
+            )
             Spacer(modifier = Modifier.height(8.dp))
-            Text("Selamat Datang!", color = Color.White, fontSize = 22.sp, fontWeight = FontWeight.ExtraBold)
-            Text("Pilih toko untuk memulai sesi kasir", color = Color.White.copy(0.85f), fontSize = 14.sp)
+            Text(
+                "Selamat Datang!",
+                color = Color.White,
+                fontSize = 22.sp,
+                fontWeight = FontWeight.ExtraBold
+            )
+            Text(
+                "Pilih toko untuk memulai sesi kasir",
+                color = Color.White.copy(0.85f),
+                fontSize = 14.sp
+            )
         }
     }
 }

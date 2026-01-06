@@ -25,6 +25,7 @@ import androidx.compose.ui.unit.sp
 import androidx.lifecycle.viewmodel.compose.viewModel
 import androidx.navigation.NavController
 import coil.compose.AsyncImage
+import com.jeruk.alp_frontend.ui.view.Toko.uriToFile
 import com.jeruk.alp_frontend.ui.viewmodel.TokoViewModel
 import java.io.File
 
@@ -145,7 +146,7 @@ fun CreateTokoView(
                     )
                     Spacer(modifier = Modifier.height(8.dp))
                     Text(
-                        text = "Pilih Gambar Terbaik",
+                        text = "Pilih Gambar",
                         color = Color.Gray,
                         fontSize = 14.sp
                     )
@@ -163,7 +164,12 @@ fun CreateTokoView(
                     modifier = Modifier.padding(12.dp),
                     verticalAlignment = Alignment.CenterVertically
                 ) {
-                    Icon(Icons.Default.Info, null, tint = Color(0xFFE11D48), modifier = Modifier.size(18.dp))
+                    Icon(
+                        Icons.Default.Info,
+                        null,
+                        tint = Color(0xFFE11D48),
+                        modifier = Modifier.size(18.dp)
+                    )
                     Spacer(modifier = Modifier.width(8.dp))
                     Text(text = errorMessage!!, color = Color(0xFFE11D48), fontSize = 12.sp)
                 }
@@ -174,7 +180,15 @@ fun CreateTokoView(
 
         // --- SUBMIT BUTTON (Gradient Primary Button) ---
         Button(
-            onClick = { tokoViewModel.createToko(token, name, description, location, selectedImageFile) },
+            onClick = {
+                tokoViewModel.createToko(
+                    token,
+                    name,
+                    description,
+                    location,
+                    selectedImageFile
+                )
+            },
             enabled = !isLoading && name.isNotEmpty() && token.isNotEmpty(),
             modifier = Modifier
                 .fillMaxWidth()

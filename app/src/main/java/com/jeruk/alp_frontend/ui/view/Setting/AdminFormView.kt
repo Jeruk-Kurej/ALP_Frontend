@@ -59,7 +59,10 @@ fun AdminFormView(
 
             // ... Bagian Icon & Title (sama seperti sebelumnya) ...
 
-            Column(modifier = Modifier.fillMaxWidth(), verticalArrangement = Arrangement.spacedBy(8.dp)) {
+            Column(
+                modifier = Modifier.fillMaxWidth(),
+                verticalArrangement = Arrangement.spacedBy(8.dp)
+            ) {
                 Text("Password Admin", fontSize = 14.sp, fontWeight = FontWeight.SemiBold)
                 OutlinedTextField(
                     value = password,
@@ -92,13 +95,18 @@ fun AdminFormView(
                 )
             }
 
-            Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(12.dp)) {
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                horizontalArrangement = Arrangement.spacedBy(12.dp)
+            ) {
                 Button(
                     onClick = {
                         keyboardController?.hide()
                         onDismiss()
                     },
-                    modifier = Modifier.weight(1f).height(52.dp),
+                    modifier = Modifier
+                        .weight(1f)
+                        .height(52.dp),
                     shape = RoundedCornerShape(14.dp),
                     colors = ButtonDefaults.buttonColors(containerColor = Color(0xFFF3F4F6))
                 ) {
@@ -116,15 +124,24 @@ fun AdminFormView(
                             isError = true
                         }
                     },
-                    modifier = Modifier.weight(1f).height(52.dp),
+                    modifier = Modifier
+                        .weight(1f)
+                        .height(52.dp),
                     shape = RoundedCornerShape(14.dp),
                     contentPadding = PaddingValues(0.dp),
                     colors = ButtonDefaults.buttonColors(containerColor = Color.Transparent)
                 ) {
                     Box(
-                        modifier = Modifier.fillMaxSize().background(
-                            brush = Brush.horizontalGradient(colors = listOf(Color(0xFF60A5FA), Color(0xFFA855F7)))
-                        ),
+                        modifier = Modifier
+                            .fillMaxSize()
+                            .background(
+                                brush = Brush.horizontalGradient(
+                                    colors = listOf(
+                                        Color(0xFF60A5FA),
+                                        Color(0xFFA855F7)
+                                    )
+                                )
+                            ),
                         contentAlignment = Alignment.Center
                     ) {
                         Text("Masuk", color = Color.White, fontWeight = FontWeight.Bold)
