@@ -24,8 +24,6 @@ class ProductViewModel : ViewModel() {
     val selectedProduct: StateFlow<Product?> = _selectedProduct.asStateFlow()
 
     // 3. State UI (Loading, Success, Error)
-    // Kita pakai variabel biasa saja (Normal Way), tidak perlu ProductState class lagi.
-
     private val _isLoading = MutableStateFlow(false)
     val isLoading: StateFlow<Boolean> = _isLoading.asStateFlow()
 
@@ -38,13 +36,29 @@ class ProductViewModel : ViewModel() {
     private val _successMessage = MutableStateFlow<String?>(null)
     val successMessage: StateFlow<String?> = _successMessage.asStateFlow()
 
+    // 🔥 BARU: State Cart (Menyimpan ProductID dan Quantity)
+    private val _cartItems = MutableStateFlow<Map<Int, Int>>(emptyMap())
+    val cartItems: StateFlow<Map<Int, Int>> = _cartItems.asStateFlow()
+
+    // 🔥 BARU: Fungsi Tambah ke Cart
+    fun addToCart(product: Product, quantity: Int) {
+        val currentCart = _cartItems.value.toMutableMap()
+
+        // Cek jika produk sudah ada, tambahkan quantity-nya, jika belum set baru
+        val currentQty = currentCart[product.id] ?: 0
+        currentCart[product.id] = currentQty + quantity
+
+        _cartItems.value = currentCart
+        Log.d("ProductVM", "Cart Updated: ${_cartItems.value}")
+    }
+
     // -----------------------------------------------------------
     // FUNCTION: GET ALL PRODUCTS
     // -----------------------------------------------------------
     fun getAllProducts(token: String) {
         viewModelScope.launch {
             _isLoading.value = true
-            _errorMessage.value = null // Reset error
+            _errorMessage.value = null
             try {
                 Log.d("ProductViewModel", "Fetching all products...")
                 val result = repository.getAllProducts(token)
@@ -81,13 +95,8 @@ class ProductViewModel : ViewModel() {
     // FUNCTION: CREATE PRODUCT
     // -----------------------------------------------------------
     fun createProduct(
-        token: String,
-        name: String,
-        description: String,
-        price: Int,
-        categoryId: Int,
-        tokoIds: String,
-        imageFile: File?
+        token: String, name: String, description: String, price: Int,
+        categoryId: Int, tokoIds: String, imageFile: File?
     ) {
         viewModelScope.launch {
             _isLoading.value = true
@@ -95,25 +104,11 @@ class ProductViewModel : ViewModel() {
             _errorMessage.value = null
 
             try {
-                Log.d("ProductVM", "Mengirim data: Name=$name, Price=$price, Cat=$categoryId, Toko=$tokoIds")
-
-                repository.createProduct(
-                    token, name, description, price, categoryId, tokoIds, imageFile
-                )
-
+                repository.createProduct(token, name, description, price, categoryId, tokoIds, imageFile)
                 _successMessage.value = "Produk berhasil dibuat"
                 _isSuccess.value = true
                 getAllProducts(token)
-
-            } catch (e: retrofit2.HttpException) {
-                // Tangkap error dari Server (400, 401, 500)
-                val errorBody = e.response()?.errorBody()?.string()
-                Log.e("ProductVM", "Server Error Body: $errorBody")
-                _errorMessage.value = "Server menolak: $errorBody"
-                _isSuccess.value = false
             } catch (e: Exception) {
-                // Error koneksi atau kodingan
-                Log.e("ProductVM", "Error Local: ${e.message}", e)
                 _errorMessage.value = "Gagal: ${e.message}"
                 _isSuccess.value = false
             } finally {
@@ -126,28 +121,18 @@ class ProductViewModel : ViewModel() {
     // FUNCTION: UPDATE PRODUCT
     // -----------------------------------------------------------
     fun updateProduct(
-        token: String,
-        productId: Int,
-        name: String,
-        description: String,
-        price: Int,
-        categoryId: Int,
-        tokoIds: String,
-        imageFile: File?
+        token: String, productId: Int, name: String, description: String,
+        price: Int, categoryId: Int, tokoIds: String, imageFile: File?
     ) {
         viewModelScope.launch {
             _isLoading.value = true
             _isSuccess.value = false
             _errorMessage.value = null
-
             try {
-                val result = repository.updateProduct(
-                    token, productId, name, description, price, categoryId, tokoIds, imageFile
-                )
+                val result = repository.updateProduct(token, productId, name, description, price, categoryId, tokoIds, imageFile)
                 _selectedProduct.value = result
                 _successMessage.value = "Produk berhasil diperbarui"
                 _isSuccess.value = true
-
                 getAllProducts(token)
             } catch (e: Exception) {
                 _errorMessage.value = "Gagal update produk: ${e.message}"
@@ -168,12 +153,9 @@ class ProductViewModel : ViewModel() {
             try {
                 val message = repository.deleteProduct(token, productId)
                 _successMessage.value = message
-
-                // Hapus manual dari list lokal biar cepat update UI
                 val currentList = _products.value.toMutableList()
                 currentList.removeAll { it.id == productId }
                 _products.value = currentList
-
             } catch (e: Exception) {
                 _errorMessage.value = "Gagal menghapus: ${e.message}"
             } finally {
@@ -182,9 +164,6 @@ class ProductViewModel : ViewModel() {
         }
     }
 
-    // -----------------------------------------------------------
-    // CLEANUP / RESET STATE
-    // -----------------------------------------------------------
     fun clearMessages() {
         _errorMessage.value = null
         _successMessage.value = null
