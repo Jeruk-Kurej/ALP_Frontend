@@ -252,7 +252,8 @@ fun AppRoute() {
             }
 
             composable("${AppView.UpdateCategory.name}/{categoryId}") { backStackEntry ->
-                val categoryId = backStackEntry.arguments?.getString("categoryId")?.toIntOrNull() ?: 0
+                val categoryId =
+                    backStackEntry.arguments?.getString("categoryId")?.toIntOrNull() ?: 0
                 UpdateCategoryView(
                     token = userState.token,
                     categoryId = categoryId,

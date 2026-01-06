@@ -61,7 +61,10 @@ fun AddProductView(
     // Fetch categories when view loads
     LaunchedEffect(Unit) {
         android.util.Log.d("AddProductView", "=== TOKEN DEBUG INFO ===")
-        android.util.Log.d("AddProductView", "Token received: ${if (token.isNotEmpty()) "Present (length: ${token.length})" else "EMPTY"}")
+        android.util.Log.d(
+            "AddProductView",
+            "Token received: ${if (token.isNotEmpty()) "Present (length: ${token.length})" else "EMPTY"}"
+        )
 
         if (token.isNotEmpty()) {
             // Decode and inspect the JWT token
@@ -83,24 +86,42 @@ fun AddProductView(
                 android.util.Log.d("AddProductView", "  - Is Admin: $isAdmin")
 
                 if (isExpired) {
-                    android.util.Log.e("AddProductView", "TOKEN IS EXPIRED! User needs to re-login.")
-                    Toast.makeText(context, "Session expired. Please login again.", Toast.LENGTH_LONG).show()
+                    android.util.Log.e(
+                        "AddProductView",
+                        "TOKEN IS EXPIRED! User needs to re-login."
+                    )
+                    Toast.makeText(
+                        context,
+                        "Session expired. Please login again.",
+                        Toast.LENGTH_LONG
+                    ).show()
                 } else if (!isAdmin) {
-                    android.util.Log.w("AddProductView", "USER IS NOT ADMIN! This might cause 403 errors.")
-                    Toast.makeText(context, "Warning: You may not have admin access", Toast.LENGTH_LONG).show()
+                    android.util.Log.w(
+                        "AddProductView",
+                        "USER IS NOT ADMIN! This might cause 403 errors."
+                    )
+                    Toast.makeText(
+                        context,
+                        "Warning: You may not have admin access",
+                        Toast.LENGTH_LONG
+                    ).show()
                 }
             } else {
                 android.util.Log.e("AddProductView", "Failed to decode JWT token!")
             }
 
-            android.util.Log.d("AddProductView", "Token value (first 50 chars): ${token.take(50)}...")
+            android.util.Log.d(
+                "AddProductView",
+                "Token value (first 50 chars): ${token.take(50)}..."
+            )
             android.util.Log.d("AddProductView", "========================")
 
             // Fetch categories
             categoryViewModel.getAllCategories(token)
         } else {
             android.util.Log.e("AddProductView", "Cannot fetch categories: Token is empty!")
-            Toast.makeText(context, "Authentication required. Please login.", Toast.LENGTH_LONG).show()
+            Toast.makeText(context, "Authentication required. Please login.", Toast.LENGTH_LONG)
+                .show()
         }
     }
 
@@ -136,7 +157,8 @@ fun AddProductView(
                 outputStream.close()
                 imageFile = file
             } catch (e: Exception) {
-                Toast.makeText(context, "Error loading image: ${e.message}", Toast.LENGTH_SHORT).show()
+                Toast.makeText(context, "Error loading image: ${e.message}", Toast.LENGTH_SHORT)
+                    .show()
             }
         }
     }
@@ -148,7 +170,11 @@ fun AddProductView(
             navController.popBackStack()
         }
         if (productState.isError) {
-            Toast.makeText(context, productState.errorMessage ?: "Gagal menambahkan produk", Toast.LENGTH_LONG).show()
+            Toast.makeText(
+                context,
+                productState.errorMessage ?: "Gagal menambahkan produk",
+                Toast.LENGTH_LONG
+            ).show()
         }
     }
 
@@ -490,34 +516,60 @@ fun AddProductView(
                 onClick = {
                     // Validation
                     if (selectedCategoryId == null) {
-                        Toast.makeText(context, "Pilih kategori terlebih dahulu", Toast.LENGTH_SHORT).show()
+                        Toast.makeText(
+                            context,
+                            "Pilih kategori terlebih dahulu",
+                            Toast.LENGTH_SHORT
+                        ).show()
                         return@Button
                     }
 
                     if (productName.isBlank()) {
-                        Toast.makeText(context, "Nama produk tidak boleh kosong", Toast.LENGTH_SHORT).show()
+                        Toast.makeText(
+                            context,
+                            "Nama produk tidak boleh kosong",
+                            Toast.LENGTH_SHORT
+                        ).show()
                         return@Button
                     }
 
                     if (productDescription.isBlank()) {
-                        Toast.makeText(context, "Deskripsi produk tidak boleh kosong", Toast.LENGTH_SHORT).show()
+                        Toast.makeText(
+                            context,
+                            "Deskripsi produk tidak boleh kosong",
+                            Toast.LENGTH_SHORT
+                        ).show()
                         return@Button
                     }
 
                     if (productPrice.isBlank()) {
-                        Toast.makeText(context, "Harga produk tidak boleh kosong", Toast.LENGTH_SHORT).show()
+                        Toast.makeText(
+                            context,
+                            "Harga produk tidak boleh kosong",
+                            Toast.LENGTH_SHORT
+                        ).show()
                         return@Button
                     }
 
                     if (imageFile == null) {
-                        Toast.makeText(context, "Pilih gambar produk terlebih dahulu", Toast.LENGTH_SHORT).show()
+                        Toast.makeText(
+                            context,
+                            "Pilih gambar produk terlebih dahulu",
+                            Toast.LENGTH_SHORT
+                        ).show()
                         return@Button
                     }
 
                     // Parse price - remove "Rp" and spaces if present
-                    val priceValue = productPrice.replace("Rp", "").replace(".", "").replace(",", "").trim().toIntOrNull()
+                    val priceValue =
+                        productPrice.replace("Rp", "").replace(".", "").replace(",", "").trim()
+                            .toIntOrNull()
                     if (priceValue == null || priceValue <= 0) {
-                        Toast.makeText(context, "Harga produk harus berupa angka positif", Toast.LENGTH_SHORT).show()
+                        Toast.makeText(
+                            context,
+                            "Harga produk harus berupa angka positif",
+                            Toast.LENGTH_SHORT
+                        ).show()
                         return@Button
                     }
 
@@ -541,11 +593,11 @@ fun AddProductView(
                     )
                 },
                 enabled = !isLoading &&
-                         productName.isNotBlank() &&
-                         productDescription.isNotBlank() &&
-                         productPrice.isNotBlank() &&
-                         selectedCategoryId != null &&
-                         imageFile != null,
+                        productName.isNotBlank() &&
+                        productDescription.isNotBlank() &&
+                        productPrice.isNotBlank() &&
+                        selectedCategoryId != null &&
+                        imageFile != null,
                 modifier = Modifier
                     .weight(1f)
                     .height(52.dp),

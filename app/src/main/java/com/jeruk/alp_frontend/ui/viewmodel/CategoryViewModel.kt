@@ -38,7 +38,11 @@ class CategoryViewModel : ViewModel() { // <-- Constructor kosong sesuai style B
                 android.util.Log.d("CategoryViewModel", "Fetched ${result.size} categories")
                 _categories.value = result
             } catch (e: Exception) {
-                android.util.Log.e("CategoryViewModel", "Error fetching categories: ${e.message}", e)
+                android.util.Log.e(
+                    "CategoryViewModel",
+                    "Error fetching categories: ${e.message}",
+                    e
+                )
                 _errorMessage.value = e.message ?: "Gagal memuat kategori"
             } finally {
                 _isLoading.value = false

@@ -237,12 +237,20 @@ fun AddCategoryView(
                     onClick = {
                         // Validation
                         if (categoryName.isBlank()) {
-                            Toast.makeText(context, "Nama kategori tidak boleh kosong", Toast.LENGTH_SHORT).show()
+                            Toast.makeText(
+                                context,
+                                "Nama kategori tidak boleh kosong",
+                                Toast.LENGTH_SHORT
+                            ).show()
                             return@Button
                         }
 
                         if (categoryDescription.isBlank()) {
-                            Toast.makeText(context, "Deskripsi kategori tidak boleh kosong", Toast.LENGTH_SHORT).show()
+                            Toast.makeText(
+                                context,
+                                "Deskripsi kategori tidak boleh kosong",
+                                Toast.LENGTH_SHORT
+                            ).show()
                             return@Button
                         }
 

@@ -57,7 +57,11 @@ fun TokoView(
                 horizontalAlignment = Alignment.CenterHorizontally,
                 verticalArrangement = Arrangement.Center
             ) {
-                Text("Belum ada toko yang tersedia", fontWeight = FontWeight.Bold, color = Color.Gray)
+                Text(
+                    "Belum ada toko yang tersedia",
+                    fontWeight = FontWeight.Bold,
+                    color = Color.Gray
+                )
             }
         } else {
             // --- LIST TOKO ---
@@ -95,10 +99,24 @@ fun TokoBannerHeader() {
         contentAlignment = Alignment.Center
     ) {
         Column(horizontalAlignment = Alignment.CenterHorizontally) {
-            Icon(Icons.Default.Storefront, null, tint = Color.White, modifier = Modifier.size(64.dp))
+            Icon(
+                Icons.Default.Storefront,
+                null,
+                tint = Color.White,
+                modifier = Modifier.size(64.dp)
+            )
             Spacer(modifier = Modifier.height(8.dp))
-            Text("Selamat Datang!", color = Color.White, fontSize = 22.sp, fontWeight = FontWeight.ExtraBold)
-            Text("Pilih toko untuk memulai sesi kasir", color = Color.White.copy(0.85f), fontSize = 14.sp)
+            Text(
+                "Selamat Datang!",
+                color = Color.White,
+                fontSize = 22.sp,
+                fontWeight = FontWeight.ExtraBold
+            )
+            Text(
+                "Pilih toko untuk memulai sesi kasir",
+                color = Color.White.copy(0.85f),
+                fontSize = 14.sp
+            )
         }
     }
 }

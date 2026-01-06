@@ -51,24 +51,59 @@ fun SettingView(
             verticalArrangement = Arrangement.spacedBy(16.dp)
         ) {
             // --- KARTU BAHASA ---
-            SettingCard(title = "Bahasa", sub = "Pilih bahasa untuk aplikasi", icon = Icons.Outlined.Language, iconBg = Color(0xFFE8EAF6), iconTint = Color(0xFF3F51B5)) {
-                LanguageOption("Bahasa Indonesia", selectedLanguage == "Indonesia") { selectedLanguage = "Indonesia" }
-                LanguageOption("English", selectedLanguage == "English") { selectedLanguage = "English" }
+            SettingCard(
+                title = "Bahasa",
+                sub = "Pilih bahasa untuk aplikasi",
+                icon = Icons.Outlined.Language,
+                iconBg = Color(0xFFE8EAF6),
+                iconTint = Color(0xFF3F51B5)
+            ) {
+                LanguageOption(
+                    "Bahasa Indonesia",
+                    selectedLanguage == "Indonesia"
+                ) { selectedLanguage = "Indonesia" }
+                LanguageOption("English", selectedLanguage == "English") {
+                    selectedLanguage = "English"
+                }
             }
 
             // --- KARTU MATA UANG ---
-            SettingCard(title = "Mata Uang", sub = "Pilih mata uang untuk transaksi", icon = Icons.Outlined.Payments, iconBg = Color(0xFFFCE4EC), iconTint = Color(0xFFE91E63)) {
-                CurrencyOption("Indonesian Rupiah", "Rp", selectedCurrency == "IDR") { selectedCurrency = "IDR" }
-                CurrencyOption("US Dollar", "$", selectedCurrency == "USD") { selectedCurrency = "USD" }
+            SettingCard(
+                title = "Mata Uang",
+                sub = "Pilih mata uang untuk transaksi",
+                icon = Icons.Outlined.Payments,
+                iconBg = Color(0xFFFCE4EC),
+                iconTint = Color(0xFFE91E63)
+            ) {
+                CurrencyOption(
+                    "Indonesian Rupiah",
+                    "Rp",
+                    selectedCurrency == "IDR"
+                ) { selectedCurrency = "IDR" }
+                CurrencyOption("US Dollar", "$", selectedCurrency == "USD") {
+                    selectedCurrency = "USD"
+                }
             }
 
             // --- ADMIN MODE ---
-            ActionItem(title = "Admin Mode", sub = "Akses panel admin", icon = Icons.Outlined.Shield, iconBg = Color(0xFFE3F2FD), iconTint = Color(0xFF2196F3)) {
+            ActionItem(
+                title = "Admin Mode",
+                sub = "Akses panel admin",
+                icon = Icons.Outlined.Shield,
+                iconBg = Color(0xFFE3F2FD),
+                iconTint = Color(0xFF2196F3)
+            ) {
                 showAdminDialog = true
             }
 
             // --- KELUAR / LOGOUT ---
-            ActionItem(title = "Keluar", sub = "Logout dari aplikasi", icon = Icons.AutoMirrored.Outlined.Logout, iconBg = Color(0xFFFFF1F0), iconTint = Color(0xFFF44336)) {
+            ActionItem(
+                title = "Keluar",
+                sub = "Logout dari aplikasi",
+                icon = Icons.AutoMirrored.Outlined.Logout,
+                iconBg = Color(0xFFFFF1F0),
+                iconTint = Color(0xFFF44336)
+            ) {
                 showLogoutConfirm = true
             }
         }
@@ -99,7 +134,10 @@ fun SettingView(
             title = { Text("Konfirmasi Keluar") },
             text = { Text("Apakah Anda yakin ingin keluar dari aplikasi?") },
             confirmButton = {
-                Button(onClick = { onLogout(); showLogoutConfirm = false }, colors = ButtonDefaults.buttonColors(containerColor = Color(0xFFF44336))) {
+                Button(
+                    onClick = { onLogout(); showLogoutConfirm = false },
+                    colors = ButtonDefaults.buttonColors(containerColor = Color(0xFFF44336))
+                ) {
                     Text("Keluar", color = Color.White)
                 }
             },
@@ -113,11 +151,31 @@ fun SettingView(
 // --- KOMPONEN PENDUKUNG (HIG STYLE) ---
 
 @Composable
-fun SettingCard(title: String, sub: String, icon: ImageVector, iconBg: Color, iconTint: Color, content: @Composable ColumnScope.() -> Unit) {
-    Card(modifier = Modifier.fillMaxWidth(), shape = RoundedCornerShape(24.dp), colors = CardDefaults.cardColors(containerColor = Color.White), elevation = CardDefaults.cardElevation(2.dp)) {
-        Column(modifier = Modifier.padding(20.dp), verticalArrangement = Arrangement.spacedBy(16.dp)) {
+fun SettingCard(
+    title: String,
+    sub: String,
+    icon: ImageVector,
+    iconBg: Color,
+    iconTint: Color,
+    content: @Composable ColumnScope.() -> Unit
+) {
+    Card(
+        modifier = Modifier.fillMaxWidth(),
+        shape = RoundedCornerShape(24.dp),
+        colors = CardDefaults.cardColors(containerColor = Color.White),
+        elevation = CardDefaults.cardElevation(2.dp)
+    ) {
+        Column(
+            modifier = Modifier.padding(20.dp),
+            verticalArrangement = Arrangement.spacedBy(16.dp)
+        ) {
             Row(verticalAlignment = Alignment.CenterVertically) {
-                Box(modifier = Modifier.size(48.dp).clip(RoundedCornerShape(12.dp)).background(iconBg), contentAlignment = Alignment.Center) {
+                Box(
+                    modifier = Modifier
+                        .size(48.dp)
+                        .clip(RoundedCornerShape(12.dp))
+                        .background(iconBg), contentAlignment = Alignment.Center
+                ) {
                     Icon(icon, null, tint = iconTint)
                 }
                 Spacer(modifier = Modifier.width(16.dp))
@@ -132,10 +190,30 @@ fun SettingCard(title: String, sub: String, icon: ImageVector, iconBg: Color, ic
 }
 
 @Composable
-fun ActionItem(title: String, sub: String, icon: ImageVector, iconBg: Color, iconTint: Color, onClick: () -> Unit) {
-    Card(modifier = Modifier.fillMaxWidth().clickable { onClick() }, shape = RoundedCornerShape(16.dp), colors = CardDefaults.cardColors(containerColor = Color.White), elevation = CardDefaults.cardElevation(1.dp)) {
+fun ActionItem(
+    title: String,
+    sub: String,
+    icon: ImageVector,
+    iconBg: Color,
+    iconTint: Color,
+    onClick: () -> Unit
+) {
+    Card(
+        modifier = Modifier
+            .fillMaxWidth()
+            .clickable { onClick() },
+        shape = RoundedCornerShape(16.dp),
+        colors = CardDefaults.cardColors(containerColor = Color.White),
+        elevation = CardDefaults.cardElevation(1.dp)
+    ) {
         Row(modifier = Modifier.padding(16.dp), verticalAlignment = Alignment.CenterVertically) {
-            Box(modifier = Modifier.size(40.dp).clip(RoundedCornerShape(10.dp)).background(iconBg), contentAlignment = Alignment.Center) {
+            Box(
+                modifier = Modifier
+                    .size(40.dp)
+                    .clip(RoundedCornerShape(10.dp))
+                    .background(iconBg),
+                contentAlignment = Alignment.Center
+            ) {
                 Icon(icon, null, tint = iconTint, modifier = Modifier.size(20.dp))
             }
             Spacer(modifier = Modifier.width(16.dp))
@@ -149,17 +227,41 @@ fun ActionItem(title: String, sub: String, icon: ImageVector, iconBg: Color, ico
 
 @Composable
 fun LanguageOption(label: String, selected: Boolean, onClick: () -> Unit) {
-    Row(modifier = Modifier.fillMaxWidth().clip(RoundedCornerShape(12.dp)).background(if (selected) Color(0xFFF9FAFB) else Color.Transparent).clickable { onClick() }.padding(8.dp), verticalAlignment = Alignment.CenterVertically) {
-        RadioButton(selected = selected, onClick = onClick, colors = RadioButtonDefaults.colors(selectedColor = Color(0xFF9333EA)))
+    Row(
+        modifier = Modifier
+            .fillMaxWidth()
+            .clip(RoundedCornerShape(12.dp))
+            .background(if (selected) Color(0xFFF9FAFB) else Color.Transparent)
+            .clickable { onClick() }
+            .padding(8.dp), verticalAlignment = Alignment.CenterVertically
+    ) {
+        RadioButton(
+            selected = selected,
+            onClick = onClick,
+            colors = RadioButtonDefaults.colors(selectedColor = Color(0xFF9333EA))
+        )
         Text(label, fontSize = 14.sp, modifier = Modifier.padding(start = 8.dp))
     }
 }
 
 @Composable
 fun CurrencyOption(label: String, symbol: String, selected: Boolean, onClick: () -> Unit) {
-    Row(modifier = Modifier.fillMaxWidth().clip(RoundedCornerShape(12.dp)).background(if (selected) Color(0xFFF9FAFB) else Color.Transparent).clickable { onClick() }.padding(8.dp), verticalAlignment = Alignment.CenterVertically) {
-        RadioButton(selected = selected, onClick = onClick, colors = RadioButtonDefaults.colors(selectedColor = Color(0xFF9333EA)))
-        Text(label, fontSize = 14.sp, modifier = Modifier.padding(start = 8.dp).weight(1f))
+    Row(
+        modifier = Modifier
+            .fillMaxWidth()
+            .clip(RoundedCornerShape(12.dp))
+            .background(if (selected) Color(0xFFF9FAFB) else Color.Transparent)
+            .clickable { onClick() }
+            .padding(8.dp), verticalAlignment = Alignment.CenterVertically
+    ) {
+        RadioButton(
+            selected = selected,
+            onClick = onClick,
+            colors = RadioButtonDefaults.colors(selectedColor = Color(0xFF9333EA))
+        )
+        Text(label, fontSize = 14.sp, modifier = Modifier
+            .padding(start = 8.dp)
+            .weight(1f))
         Text(symbol, fontWeight = FontWeight.Bold, color = Color.Gray)
     }
 }

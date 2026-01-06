@@ -89,9 +89,20 @@ class ProductViewModel : ViewModel() {
             _isLoading.value = true
             _productState.value = ProductState()
             try {
-                Log.d("ProductViewModel", "Creating product: name=$name, hasImage=${imageFile != null}")
+                Log.d(
+                    "ProductViewModel",
+                    "Creating product: name=$name, hasImage=${imageFile != null}"
+                )
 
-                val result = repository.createProduct(token, name, description, price, categoryId, tokoIds, imageFile)
+                val result = repository.createProduct(
+                    token,
+                    name,
+                    description,
+                    price,
+                    categoryId,
+                    tokoIds,
+                    imageFile
+                )
 
                 Log.d("ProductViewModel", "Product created successfully: ${result.name}")
 
@@ -132,7 +143,16 @@ class ProductViewModel : ViewModel() {
             _productState.value = ProductState() // Reset state
             try {
                 Log.d("ProductViewModel", "Updating product id=$productId with name=$name")
-                val result = repository.updateProduct(token, productId, name, description, price, categoryId, tokoIds, imageFile)
+                val result = repository.updateProduct(
+                    token,
+                    productId,
+                    name,
+                    description,
+                    price,
+                    categoryId,
+                    tokoIds,
+                    imageFile
+                )
                 _selectedProduct.value = result
                 _productState.value = ProductState(isSuccess = true) // Set success state
                 getAllProducts(token) // Refresh list

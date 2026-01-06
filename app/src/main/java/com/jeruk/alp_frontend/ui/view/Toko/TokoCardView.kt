@@ -69,7 +69,12 @@ fun TokoCardView(
                 )
                 Spacer(modifier = Modifier.height(4.dp))
                 Row(verticalAlignment = Alignment.CenterVertically) {
-                    Icon(Icons.Default.LocationOn, null, tint = Color.LightGray, modifier = Modifier.size(14.dp))
+                    Icon(
+                        Icons.Default.LocationOn,
+                        null,
+                        tint = Color.LightGray,
+                        modifier = Modifier.size(14.dp)
+                    )
                     Spacer(modifier = Modifier.width(4.dp))
                     Text(text = toko.address, color = Color.Gray, fontSize = 11.sp)
                 }

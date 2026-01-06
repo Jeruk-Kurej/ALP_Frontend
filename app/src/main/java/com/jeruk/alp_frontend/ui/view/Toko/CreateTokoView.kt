@@ -164,7 +164,12 @@ fun CreateTokoView(
                     modifier = Modifier.padding(12.dp),
                     verticalAlignment = Alignment.CenterVertically
                 ) {
-                    Icon(Icons.Default.Info, null, tint = Color(0xFFE11D48), modifier = Modifier.size(18.dp))
+                    Icon(
+                        Icons.Default.Info,
+                        null,
+                        tint = Color(0xFFE11D48),
+                        modifier = Modifier.size(18.dp)
+                    )
                     Spacer(modifier = Modifier.width(8.dp))
                     Text(text = errorMessage!!, color = Color(0xFFE11D48), fontSize = 12.sp)
                 }
@@ -175,7 +180,15 @@ fun CreateTokoView(
 
         // --- SUBMIT BUTTON (Gradient Primary Button) ---
         Button(
-            onClick = { tokoViewModel.createToko(token, name, description, location, selectedImageFile) },
+            onClick = {
+                tokoViewModel.createToko(
+                    token,
+                    name,
+                    description,
+                    location,
+                    selectedImageFile
+                )
+            },
             enabled = !isLoading && name.isNotEmpty() && token.isNotEmpty(),
             modifier = Modifier
                 .fillMaxWidth()

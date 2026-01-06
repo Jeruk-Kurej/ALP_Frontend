@@ -165,7 +165,9 @@ fun UpdateProductView(
             OutlinedTextField(
                 value = productDescription,
                 onValueChange = { productDescription = it },
-                modifier = Modifier.fillMaxWidth().height(100.dp),
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .height(100.dp),
                 placeholder = { Text("Masukkan deskripsi produk") },
                 shape = RoundedCornerShape(12.dp),
                 colors = OutlinedTextFieldDefaults.colors(
@@ -213,7 +215,9 @@ fun UpdateProductView(
                     onValueChange = {},
                     readOnly = true,
                     trailingIcon = { ExposedDropdownMenuDefaults.TrailingIcon(expanded = categoryExpanded) },
-                    modifier = Modifier.fillMaxWidth().menuAnchor(),
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .menuAnchor(),
                     shape = RoundedCornerShape(12.dp),
                     colors = OutlinedTextFieldDefaults.colors(
                         focusedBorderColor = Color(0xFF3B82F6),
@@ -313,8 +317,14 @@ fun UpdateProductView(
                     val priceValue = productPrice.toIntOrNull() ?: 0
                     selectedCategoryId?.let { catId ->
                         android.util.Log.d("UpdateProductView", "Updating product: id=$productId")
-                        android.util.Log.d("UpdateProductView", "Name: $productName, Price: $priceValue, CategoryId: $catId")
-                        android.util.Log.d("UpdateProductView", "New image selected: ${imageFile != null}")
+                        android.util.Log.d(
+                            "UpdateProductView",
+                            "Name: $productName, Price: $priceValue, CategoryId: $catId"
+                        )
+                        android.util.Log.d(
+                            "UpdateProductView",
+                            "New image selected: ${imageFile != null}"
+                        )
 
                         productViewModel.updateProduct(
                             token = token,

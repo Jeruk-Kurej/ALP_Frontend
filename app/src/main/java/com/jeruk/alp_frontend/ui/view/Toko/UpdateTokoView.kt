@@ -121,12 +121,33 @@ fun UpdateTokoView(
         }
 
         // --- INPUT FIELDS ---
-        CustomTextField(value = name, onValueChange = { name = it }, label = "Nama Toko", placeholder = "Nama Toko")
-        CustomTextField(value = location, onValueChange = { location = it }, label = "Lokasi", placeholder = "Alamat Lengkap")
-        CustomTextField(value = description, onValueChange = { description = it }, label = "Deskripsi", placeholder = "Tentang Toko...", minLines = 3)
+        CustomTextField(
+            value = name,
+            onValueChange = { name = it },
+            label = "Nama Toko",
+            placeholder = "Nama Toko"
+        )
+        CustomTextField(
+            value = location,
+            onValueChange = { location = it },
+            label = "Lokasi",
+            placeholder = "Alamat Lengkap"
+        )
+        CustomTextField(
+            value = description,
+            onValueChange = { description = it },
+            label = "Deskripsi",
+            placeholder = "Tentang Toko...",
+            minLines = 3
+        )
 
         // --- IMAGE SECTION ---
-        Text(text = "Foto Toko", fontWeight = FontWeight.Bold, fontSize = 16.sp, color = Color(0xFF374151))
+        Text(
+            text = "Foto Toko",
+            fontWeight = FontWeight.Bold,
+            fontSize = 16.sp,
+            color = Color(0xFF374151)
+        )
         Box(
             modifier = Modifier
                 .fillMaxWidth()
@@ -138,19 +159,39 @@ fun UpdateTokoView(
             contentAlignment = Alignment.Center
         ) {
             if (imageUri != null) {
-                AsyncImage(model = imageUri, contentDescription = null, modifier = Modifier.fillMaxSize(), contentScale = ContentScale.Crop)
+                AsyncImage(
+                    model = imageUri,
+                    contentDescription = null,
+                    modifier = Modifier.fillMaxSize(),
+                    contentScale = ContentScale.Crop
+                )
             } else if (!selectedToko?.imageUrl.isNullOrEmpty()) {
-                AsyncImage(model = selectedToko?.imageUrl, contentDescription = null, modifier = Modifier.fillMaxSize(), contentScale = ContentScale.Crop)
+                AsyncImage(
+                    model = selectedToko?.imageUrl,
+                    contentDescription = null,
+                    modifier = Modifier.fillMaxSize(),
+                    contentScale = ContentScale.Crop
+                )
             } else {
                 Column(horizontalAlignment = Alignment.CenterHorizontally) {
-                    Icon(Icons.Default.PhotoCamera, null, tint = Color(0xFF9333EA), modifier = Modifier.size(40.dp))
+                    Icon(
+                        Icons.Default.PhotoCamera,
+                        null,
+                        tint = Color(0xFF9333EA),
+                        modifier = Modifier.size(40.dp)
+                    )
                     Text("Ganti Foto Toko", color = Color.Gray, fontSize = 14.sp)
                 }
             }
         }
 
         // --- SECTION PILIH PRODUK (DUMMY) ---
-        Text(text = "Pilih Produk Toko", fontWeight = FontWeight.Bold, fontSize = 16.sp, color = Color(0xFF374151))
+        Text(
+            text = "Pilih Produk Toko",
+            fontWeight = FontWeight.Bold,
+            fontSize = 16.sp,
+            color = Color(0xFF374151)
+        )
 
         Card(
             modifier = Modifier.fillMaxWidth(),
@@ -164,7 +205,9 @@ fun UpdateTokoView(
                         modifier = Modifier
                             .fillMaxWidth()
                             .clickable {
-                                if (selectedProductIds.contains(product.id)) selectedProductIds.remove(product.id)
+                                if (selectedProductIds.contains(product.id)) selectedProductIds.remove(
+                                    product.id
+                                )
                                 else selectedProductIds.add(product.id)
                             }
                             .padding(vertical = 12.dp),
@@ -177,11 +220,20 @@ fun UpdateTokoView(
                         )
                         Spacer(modifier = Modifier.width(8.dp))
                         Column(modifier = Modifier.weight(1f)) {
-                            Text(text = product.name, fontWeight = FontWeight.SemiBold, fontSize = 15.sp)
+                            Text(
+                                text = product.name,
+                                fontWeight = FontWeight.SemiBold,
+                                fontSize = 15.sp
+                            )
                             Text(text = product.price, color = Color.Gray, fontSize = 13.sp)
                         }
                         if (selectedProductIds.contains(product.id)) {
-                            Icon(Icons.Default.CheckCircle, null, tint = Color(0xFF10B981), modifier = Modifier.size(20.dp))
+                            Icon(
+                                Icons.Default.CheckCircle,
+                                null,
+                                tint = Color(0xFF10B981),
+                                modifier = Modifier.size(20.dp)
+                            )
                         }
                     }
                     if (product != dummyProducts.last()) HorizontalDivider(color = Color(0xFFF3F4F6))
@@ -193,8 +245,20 @@ fun UpdateTokoView(
 
         // --- SUBMIT BUTTON (Gradient) ---
         Button(
-            onClick = { tokoViewModel.updateToko(token, tokoId, name, description, location, selectedImageFile) },
-            modifier = Modifier.fillMaxWidth().height(58.dp).clip(RoundedCornerShape(18.dp)),
+            onClick = {
+                tokoViewModel.updateToko(
+                    token,
+                    tokoId,
+                    name,
+                    description,
+                    location,
+                    selectedImageFile
+                )
+            },
+            modifier = Modifier
+                .fillMaxWidth()
+                .height(58.dp)
+                .clip(RoundedCornerShape(18.dp)),
             enabled = !isLoading && name.isNotEmpty(),
             colors = ButtonDefaults.buttonColors(containerColor = Color.Transparent),
             contentPadding = PaddingValues(0.dp)
@@ -203,12 +267,25 @@ fun UpdateTokoView(
                 modifier = Modifier
                     .fillMaxSize()
                     .background(
-                        brush = Brush.horizontalGradient(listOf(Color(0xFF9333EA), Color(0xFFBA68C8)))
+                        brush = Brush.horizontalGradient(
+                            listOf(
+                                Color(0xFF9333EA),
+                                Color(0xFFBA68C8)
+                            )
+                        )
                     ),
                 contentAlignment = Alignment.Center
             ) {
-                if (isLoading) CircularProgressIndicator(color = Color.White, modifier = Modifier.size(24.dp))
-                else Text("Simpan Perubahan", fontWeight = FontWeight.Bold, color = Color.White, fontSize = 16.sp)
+                if (isLoading) CircularProgressIndicator(
+                    color = Color.White,
+                    modifier = Modifier.size(24.dp)
+                )
+                else Text(
+                    "Simpan Perubahan",
+                    fontWeight = FontWeight.Bold,
+                    color = Color.White,
+                    fontSize = 16.sp
+                )
             }
         }
 

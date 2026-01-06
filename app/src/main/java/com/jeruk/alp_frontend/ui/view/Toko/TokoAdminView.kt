@@ -90,9 +90,19 @@ fun TokoAdminView(
                     contentAlignment = Alignment.Center
                 ) {
                     Row(verticalAlignment = Alignment.CenterVertically) {
-                        Icon(Icons.Default.Add, null, tint = Color.White, modifier = Modifier.size(18.dp))
+                        Icon(
+                            Icons.Default.Add,
+                            null,
+                            tint = Color.White,
+                            modifier = Modifier.size(18.dp)
+                        )
                         Spacer(Modifier.width(4.dp))
-                        Text("Tambah", color = Color.White, fontWeight = FontWeight.Bold, fontSize = 14.sp)
+                        Text(
+                            "Tambah",
+                            color = Color.White,
+                            fontWeight = FontWeight.Bold,
+                            fontSize = 14.sp
+                        )
                     }
                 }
             }
@@ -100,7 +110,9 @@ fun TokoAdminView(
 
         if (isLoading) {
             LinearProgressIndicator(
-                modifier = Modifier.fillMaxWidth().padding(horizontal = 24.dp),
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .padding(horizontal = 24.dp),
                 color = Color(0xFFBA68C8)
             )
         }

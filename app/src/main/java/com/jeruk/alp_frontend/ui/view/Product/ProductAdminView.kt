@@ -188,7 +188,7 @@ fun ProductListContent(
         } else {
             products.filter {
                 it.name.contains(searchQuery, ignoreCase = true) ||
-                it.description.contains(searchQuery, ignoreCase = true)
+                        it.description.contains(searchQuery, ignoreCase = true)
             }
         }
     }
@@ -326,7 +326,11 @@ fun ProductListContent(
                         },
                         onDelete = {
                             productViewModel.deleteProduct(token, product.id)
-                            Toast.makeText(context, "Menghapus ${product.name}...", Toast.LENGTH_SHORT).show()
+                            Toast.makeText(
+                                context,
+                                "Menghapus ${product.name}...",
+                                Toast.LENGTH_SHORT
+                            ).show()
                         }
                     )
                 }
@@ -503,7 +507,15 @@ fun CategoryListContent(
                 Box(
                     modifier = Modifier
                         .clip(RoundedCornerShape(12.dp))
-                        .background(brush = Brush.horizontalGradient(colors = listOf(Color(0xFF6B9FFF), Color(0xFFBA68C8))))
+                        .background(
+                            brush = Brush.horizontalGradient(
+                                colors = listOf(
+                                    Color(
+                                        0xFF6B9FFF
+                                    ), Color(0xFFBA68C8)
+                                )
+                            )
+                        )
                         .padding(horizontal = 18.dp, vertical = 10.dp),
                     contentAlignment = Alignment.Center
                 ) {
@@ -511,8 +523,18 @@ fun CategoryListContent(
                         verticalAlignment = Alignment.CenterVertically,
                         horizontalArrangement = Arrangement.spacedBy(8.dp)
                     ) {
-                        Icon(Icons.Default.Add, contentDescription = null, tint = Color.White, modifier = Modifier.size(20.dp))
-                        Text(text = "Tambah", color = Color.White, fontWeight = FontWeight.SemiBold, fontSize = 15.sp)
+                        Icon(
+                            Icons.Default.Add,
+                            contentDescription = null,
+                            tint = Color.White,
+                            modifier = Modifier.size(20.dp)
+                        )
+                        Text(
+                            text = "Tambah",
+                            color = Color.White,
+                            fontWeight = FontWeight.SemiBold,
+                            fontSize = 15.sp
+                        )
                     }
                 }
             }
@@ -523,9 +545,17 @@ fun CategoryListContent(
         OutlinedTextField(
             value = searchQuery,
             onValueChange = { searchQuery = it },
-            modifier = Modifier.fillMaxWidth().clip(RoundedCornerShape(12.dp)),
+            modifier = Modifier
+                .fillMaxWidth()
+                .clip(RoundedCornerShape(12.dp)),
             placeholder = { Text("Cari kategori...", color = Color.Gray, fontSize = 15.sp) },
-            leadingIcon = { Icon(Icons.Default.Search, contentDescription = null, tint = Color.Gray) },
+            leadingIcon = {
+                Icon(
+                    Icons.Default.Search,
+                    contentDescription = null,
+                    tint = Color.Gray
+                )
+            },
             colors = OutlinedTextFieldDefaults.colors(
                 focusedContainerColor = Color.White,
                 unfocusedContainerColor = Color.White,
@@ -543,14 +573,21 @@ fun CategoryListContent(
             }
         } else if (filteredCategories.isEmpty()) {
             Box(modifier = Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
-                Column(horizontalAlignment = Alignment.CenterHorizontally, verticalArrangement = Arrangement.spacedBy(8.dp)) {
+                Column(
+                    horizontalAlignment = Alignment.CenterHorizontally,
+                    verticalArrangement = Arrangement.spacedBy(8.dp)
+                ) {
                     Text(
                         text = if (searchQuery.isBlank()) "Belum ada kategori" else "Kategori tidak ditemukan",
                         fontSize = 16.sp,
                         color = Color.Gray
                     )
                     if (searchQuery.isBlank()) {
-                        Text(text = "Klik tombol Tambah untuk menambah kategori", fontSize = 14.sp, color = Color.LightGray)
+                        Text(
+                            text = "Klik tombol Tambah untuk menambah kategori",
+                            fontSize = 14.sp,
+                            color = Color.LightGray
+                        )
                     }
                 }
             }
@@ -577,7 +614,9 @@ fun CategoryCard(category: Category, onEdit: () -> Unit, onDelete: () -> Unit) {
         elevation = CardDefaults.cardElevation(2.dp)
     ) {
         Row(
-            modifier = Modifier.padding(16.dp).fillMaxWidth(),
+            modifier = Modifier
+                .padding(16.dp)
+                .fillMaxWidth(),
             verticalAlignment = Alignment.CenterVertically,
             horizontalArrangement = Arrangement.SpaceBetween
         ) {
@@ -587,7 +626,11 @@ fun CategoryCard(category: Category, onEdit: () -> Unit, onDelete: () -> Unit) {
                     Icon(Icons.Default.Edit, contentDescription = "Edit", tint = Color(0xFF6B9FFF))
                 }
                 IconButton(onClick = onDelete) {
-                    Icon(Icons.Default.Delete, contentDescription = "Delete", tint = Color(0xFFEF4444))
+                    Icon(
+                        Icons.Default.Delete,
+                        contentDescription = "Delete",
+                        tint = Color(0xFFEF4444)
+                    )
                 }
             }
         }

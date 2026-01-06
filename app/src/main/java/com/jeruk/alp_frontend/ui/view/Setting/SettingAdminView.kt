@@ -37,7 +37,12 @@ fun SettingAdminView(
             verticalArrangement = Arrangement.spacedBy(16.dp)
         ) {
             // Card Bahasa & Mata Uang (Gunakan komponen yang sudah kita buat sebelumnya)
-            Text("Pengaturan Admin", fontWeight = FontWeight.Bold, fontSize = 20.sp, modifier = Modifier.padding(bottom = 8.dp))
+            Text(
+                "Pengaturan Admin",
+                fontWeight = FontWeight.Bold,
+                fontSize = 20.sp,
+                modifier = Modifier.padding(bottom = 8.dp)
+            )
 
             // Menu Khusus Admin: Keluar dari Mode Admin
             ActionItem(
@@ -69,7 +74,10 @@ fun SettingAdminView(
             title = { Text("Konfirmasi Logout") },
             text = { Text("Apakah Anda yakin ingin keluar?") },
             confirmButton = {
-                Button(onClick = onLogout, colors = ButtonDefaults.buttonColors(containerColor = Color.Red)) {
+                Button(
+                    onClick = onLogout,
+                    colors = ButtonDefaults.buttonColors(containerColor = Color.Red)
+                ) {
                     Text("Keluar", color = Color.White)
                 }
             },
