@@ -1,8 +1,11 @@
 package com.jeruk.alp_frontend.data.repository
 
+import android.util.Log
 import com.jeruk.alp_frontend.data.service.OrderService
 import com.jeruk.alp_frontend.ui.model.Order
 import com.jeruk.alp_frontend.ui.model.OrderItem
+import com.jeruk.alp_frontend.data.service.OrderItemRequest
+import com.jeruk.alp_frontend.data.service.OrderRequest
 
 class OrderRepository(
     private val service: OrderService,
@@ -48,17 +51,19 @@ class OrderRepository(
         customerName: String,
         paymentId: Int,
         tokoId: Int,
-        orderItems: List<Map<String, Int>>
+        orderItems: List<OrderItemRequest>
     ): Order {
-        val body = mapOf(
-            "customer_name" to customerName,
-            "payment_id" to paymentId,
-            "toko_id" to tokoId,
-            "order_items" to orderItems
-        )
-        val response = service.createOrder("Bearer $token", body)
 
+        val requestBody = OrderRequest(
+            customerName = customerName,
+            paymentId = paymentId,
+            tokoId = tokoId,
+            items = orderItems
+        )
+
+        val response = service.createOrder("Bearer $token", requestBody)
         if (response.isSuccessful) {
+            Log.d("OrderRepository", "Order created successfully!")
             val item = response.body()!!.data
             return Order(
                 id = item.id,
@@ -83,7 +88,10 @@ class OrderRepository(
                 }
             )
         } else {
-            throw Exception("Failed to create order: ${response.code()}")
+            val errorBody = response.errorBody()?.string()
+            Log.e("OrderRepository", "Failed to create order: ${response.code()}")
+            Log.e("OrderRepository", "Error body: $errorBody")
+            throw Exception("Failed to create order: ${response.code()} - $errorBody")
         }
     }
 

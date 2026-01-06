@@ -1,5 +1,6 @@
 package com.jeruk.alp_frontend.ui.route
 
+import androidx.activity.compose.BackHandler
 import androidx.compose.foundation.layout.padding
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
@@ -38,6 +39,11 @@ import com.jeruk.alp_frontend.ui.view.Product.ProductAdminView
 import com.jeruk.alp_frontend.ui.view.Product.UpdateProductView
 import com.jeruk.alp_frontend.ui.view.Category.AddCategoryView
 import com.jeruk.alp_frontend.ui.view.Category.UpdateCategoryView
+import com.jeruk.alp_frontend.ui.view.Order.CashPageView
+import com.jeruk.alp_frontend.ui.view.Order.OrderPageView
+import com.jeruk.alp_frontend.ui.view.Order.PaymentPageView
+import com.jeruk.alp_frontend.ui.view.Order.QRISPageView
+import com.jeruk.alp_frontend.ui.view.Order.SuccessPageView
 import com.jeruk.alp_frontend.ui.view.Product.ProductMenuView
 import com.jeruk.alp_frontend.ui.view.Toko.CreateTokoView
 import com.jeruk.alp_frontend.ui.view.Toko.TokoAdminView
@@ -45,6 +51,8 @@ import com.jeruk.alp_frontend.ui.view.Toko.TokoView
 import com.jeruk.alp_frontend.ui.view.Toko.UpdateTokoView
 import com.jeruk.alp_frontend.ui.view.WelcomingView
 import com.jeruk.alp_frontend.ui.viewmodel.AuthViewModel
+import com.jeruk.alp_frontend.ui.viewmodel.OrderViewModel
+import com.jeruk.alp_frontend.ui.viewmodel.ProductViewModel
 
 // 1. Model untuk Item di Bottom Bar
 data class BottomNavItem(
@@ -64,7 +72,12 @@ enum class AppView(
 
     // --- Waiter Mode ---
     Home("Pilih Toko", Icons.Filled.Storefront, Icons.Outlined.Storefront),
-    ProductMenu("Menu Toko"), // Judul Default (akan ditimpa nanti)
+    ProductMenu("Menu Toko"),
+    OrderPage("Keranjang Belanja"),
+    PaymentPage("Pembayaran"),
+    QRISPage("Scan QRIS"),
+    CashPage("Pembayaran Tunai"),
+    SuccessPage("Pembayaran Selesai"),
 
     // --- Admin Mode ---
     Analysis("Dashboard", Icons.Filled.GridView, Icons.Outlined.GridView),
@@ -88,29 +101,34 @@ enum class AppView(
 @Composable
 fun AppRoute() {
     val navController = rememberNavController()
-    val authViewModel: AuthViewModel = viewModel()
-    val userState by authViewModel.userState.collectAsState()
 
+    // --- VIEWMODELS ---
+    val authViewModel: AuthViewModel = viewModel()
+    // 🔥 PENTING: Inisialisasi di sini agar Cart data tersimpan saat pindah page
+    val productViewModel: ProductViewModel = viewModel()
+    val orderViewModel: OrderViewModel = viewModel()
+
+    val userState by authViewModel.userState.collectAsState()
     val navBackStackEntry by navController.currentBackStackEntryAsState()
     val currentRoute = navBackStackEntry?.destination?.route
 
     // Logic menentukan mode Admin/Waiter
     val adminRoutes = listOf(
-        AppView.Analysis.name,
-        AppView.AdminToko.name,
-        AppView.AdminProduk.name,
-        AppView.AnalysisDetail.name,
-        AppView.CreateToko.name,
-        AppView.UpdateToko.name,
-        AppView.AddProduct.name,
-        AppView.UpdateProduct.name,
-        AppView.AddCategory.name,
+        AppView.Analysis.name, AppView.AdminToko.name, AppView.AdminProduk.name,
+        AppView.AnalysisDetail.name, AppView.CreateToko.name, AppView.UpdateToko.name,
+        AppView.AddProduct.name, AppView.UpdateProduct.name, AppView.AddCategory.name,
         AppView.UpdateCategory.name
     )
     val waiterRoutes = listOf(
         AppView.Home.name,
-        AppView.ProductMenu.name
+        AppView.ProductMenu.name,
+        AppView.OrderPage.name,
+        AppView.PaymentPage.name,
+        AppView.QRISPage.name,
+        AppView.CashPage.name,
+        AppView.SuccessPage.name
     )
+
     var isUserInAdminMode by remember { mutableStateOf(false) }
 
     LaunchedEffect(currentRoute) {
@@ -123,37 +141,35 @@ fun AppRoute() {
     }
 
     val rootPages = listOf(
-        AppView.Home.name,
-        AppView.Analysis.name,
-        AppView.AdminToko.name,
-        AppView.AdminProduk.name,
-        AppView.Setting.name
+        AppView.Home.name, AppView.Analysis.name, AppView.AdminToko.name,
+        AppView.AdminProduk.name, AppView.Setting.name
     )
 
     val canNavigateBack = currentRoute !in rootPages && navController.previousBackStackEntry != null
 
     Scaffold(
         topBar = {
-            val noHeaderPages = listOf(AppView.Welcoming.name, AppView.Login.name, AppView.Register.name)
+            // PERBAIKAN 1: Tambahkan SuccessPage di sini agar Header TIDAK MUNCUL
+            val noHeaderPages = listOf(
+                AppView.Welcoming.name,
+                AppView.Login.name,
+                AppView.Register.name,
+                AppView.SuccessPage.name // <--- TopBar disembunyikan di halaman Success
+            )
             val currentBaseRoute = currentRoute?.split("/")?.first()
 
             if (currentBaseRoute !in noHeaderPages && currentRoute != null) {
-                // 1. Cari Enum View yang sesuai
-                val currentView = AppView.entries.find { it.name == currentBaseRoute }
-                    ?: AppView.Welcoming
+                val currentView =
+                    AppView.entries.find { it.name == currentBaseRoute } ?: AppView.Welcoming
 
-                // 2. LOGIC JUDUL DINAMIS (Nama Toko - Lokasi)
                 val titleText = if (currentBaseRoute == AppView.ProductMenu.name) {
                     val name = navBackStackEntry?.arguments?.getString("tokoName") ?: ""
                     val address = navBackStackEntry?.arguments?.getString("tokoAddress") ?: ""
-
-                    // Gabungkan Nama dan Alamat
                     if (address.isNotEmpty()) "$name - $address" else name
                 } else {
                     currentView.title
                 }
 
-                // 3. Panggil TopBar
                 MyTopAppBar(titleText, navController, canNavigateBack)
             }
         },
@@ -207,55 +223,175 @@ fun AppRoute() {
                 TokoView(token = userState.token, navController = navController)
             }
 
-            // === UPDATE RUTE DI SINI (Menambahkan Address) ===
             composable(
                 route = "${AppView.ProductMenu.name}/{tokoId}/{tokoName}/{tokoAddress}",
                 arguments = listOf(
                     navArgument("tokoId") { type = NavType.IntType },
                     navArgument("tokoName") { type = NavType.StringType },
-                    navArgument("tokoAddress") { type = NavType.StringType } // Parameter Baru
+                    navArgument("tokoAddress") { type = NavType.StringType }
                 )
             ) { backStackEntry ->
                 val tokoId = backStackEntry.arguments?.getInt("tokoId") ?: 0
                 val tokoName = backStackEntry.arguments?.getString("tokoName") ?: "Toko"
-                // Address tidak perlu dikirim ke ProductMenuView jika hanya untuk judul TopBar
-                // tapi kalau mau dikirim juga boleh.
 
                 ProductMenuView(
                     navController = navController,
                     token = userState.token,
                     tokoId = tokoId,
-                    tokoName = tokoName
+                    tokoName = tokoName,
+                    productViewModel = productViewModel // 🔥 Share ViewModel
                 )
+            }
+
+            composable(
+                route = "${AppView.OrderPage.name}/{token}/{tokoId}",
+                arguments = listOf(
+                    navArgument("token") { type = NavType.StringType },
+                    navArgument("tokoId") { type = NavType.IntType }
+                )
+            ) { backStackEntry ->
+                val token = backStackEntry.arguments?.getString("token") ?: ""
+                val tokoId = backStackEntry.arguments?.getInt("tokoId") ?: 0
+                OrderPageView(
+                    navController = navController,
+                    productViewModel = productViewModel,
+                    token = token,
+                    tokoId = tokoId
+                )
+            }
+
+            composable(
+                route = "${AppView.PaymentPage.name}/{token}/{tokoId}",
+                arguments = listOf(
+                    navArgument("token") { type = NavType.StringType },
+                    navArgument("tokoId") { type = NavType.IntType }
+                )
+            ) { backStackEntry ->
+                val token = backStackEntry.arguments?.getString("token") ?: ""
+                val tokoId = backStackEntry.arguments?.getInt("tokoId") ?: 0
+                PaymentPageView(
+                    navController = navController,
+                    productViewModel = productViewModel,
+                    token = token,
+                    tokoId = tokoId
+                )
+            }
+
+            composable(
+                route = "QRISPage/{token}/{tokoId}",
+                arguments = listOf(
+                    navArgument("token") { type = NavType.StringType },
+                    navArgument("tokoId") { type = NavType.IntType }
+                )
+            ) { backStackEntry ->
+                val token = backStackEntry.arguments?.getString("token") ?: ""
+                val tokoId = backStackEntry.arguments?.getInt("tokoId") ?: 0
+                QRISPageView(
+                    navController = navController,
+                    productViewModel = productViewModel,
+                    orderViewModel = orderViewModel,
+                    token = token,
+                    tokoId = tokoId
+                )
+            }
+
+            composable(
+                route = "CashPage/{token}/{tokoId}",
+                arguments = listOf(
+                    navArgument("token") { type = NavType.StringType },
+                    navArgument("tokoId") { type = NavType.IntType }
+                )
+            ) { backStackEntry ->
+                val token = backStackEntry.arguments?.getString("token") ?: ""
+                val tokoId = backStackEntry.arguments?.getInt("tokoId") ?: 0
+                CashPageView(
+                    navController = navController,
+                    productViewModel = productViewModel,
+                    orderViewModel = orderViewModel,
+                    token = token,
+                    tokoId = tokoId
+                )
+            }
+
+            composable(AppView.SuccessPage.name) {
+                // PERBAIKAN 2: Blokir tombol Back HP saat di halaman Sukses/Loading
+                BackHandler(enabled = true) {
+                    // Jika user tekan Back, paksa kembali ke Home (reset flow)
+                    navController.navigate(AppView.Home.name) {
+                        popUpTo(AppView.Home.name) { inclusive = true }
+                    }
+                }
+                SuccessPageView(navController, productViewModel)
             }
 
             // --- ADMIN MODE ---
             composable(AppView.Analysis.name) { AnalysisPageView(navController) }
+            composable(AppView.AdminToko.name) {
+                TokoAdminView(
+                    navController = navController,
+                    authViewModel = authViewModel
+                )
+            }
             composable(AppView.AnalysisDetail.name) { AnalysisDetailView(navController) }
             composable(AppView.AdminToko.name) { TokoAdminView(navController = navController, authViewModel = authViewModel) }
 
             composable(AppView.CreateToko.name) {
-                CreateTokoView(token = userState.token, onSuccess = { navController.popBackStack() }, navController = navController)
+                CreateTokoView(
+                    token = userState.token,
+                    onSuccess = { navController.popBackStack() },
+                    navController = navController
+                )
             }
 
             composable("${AppView.UpdateToko.name}/{tokoId}") { backStackEntry ->
                 val tokoId = backStackEntry.arguments?.getString("tokoId")?.toInt() ?: 0
-                UpdateTokoView(token = userState.token, tokoId = tokoId, onSuccess = { navController.popBackStack() }, navController = navController)
+                UpdateTokoView(
+                    token = userState.token,
+                    tokoId = tokoId,
+                    onSuccess = { navController.popBackStack() },
+                    navController = navController
+                )
             }
 
-            composable(AppView.AdminProduk.name) { ProductAdminView(navController, token = userState.token) }
-            composable(AppView.AddProduct.name) { AddProductView(navController = navController, token = userState.token) }
+            composable(AppView.AdminProduk.name) {
+                ProductAdminView(
+                    navController,
+                    token = userState.token
+                )
+            }
+            composable(AppView.AddProduct.name) {
+                AddProductView(
+                    navController = navController,
+                    token = userState.token
+                )
+            }
 
             composable("${AppView.UpdateProduct.name}/{productId}") { backStackEntry ->
                 val productId = backStackEntry.arguments?.getString("productId")?.toIntOrNull() ?: 0
-                UpdateProductView(token = userState.token, productId = productId, onSuccess = { navController.popBackStack() }, navController = navController)
+                UpdateProductView(
+                    token = userState.token,
+                    productId = productId,
+                    onSuccess = { navController.popBackStack() },
+                    navController = navController
+                )
             }
 
-            composable(AppView.AddCategory.name) { AddCategoryView(navController = navController, token = userState.token) }
+            composable(AppView.AddCategory.name) {
+                AddCategoryView(
+                    navController = navController,
+                    token = userState.token
+                )
+            }
 
             composable("${AppView.UpdateCategory.name}/{categoryId}") { backStackEntry ->
-                val categoryId = backStackEntry.arguments?.getString("categoryId")?.toIntOrNull() ?: 0
-                UpdateCategoryView(token = userState.token, categoryId = categoryId, onSuccess = { navController.popBackStack() }, navController = navController)
+                val categoryId =
+                    backStackEntry.arguments?.getString("categoryId")?.toIntOrNull() ?: 0
+                UpdateCategoryView(
+                    token = userState.token,
+                    categoryId = categoryId,
+                    onSuccess = { navController.popBackStack() },
+                    navController = navController
+                )
             }
 
             // --- SETTING ---
@@ -263,11 +399,19 @@ fun AppRoute() {
                 if (isUserInAdminMode) {
                     SettingAdminView(
                         navController = navController,
-                        onLogout = { navController.navigate(AppView.Welcoming.name) { popUpTo(0) { inclusive = true } } },
+                        onLogout = {
+                            navController.navigate(AppView.Welcoming.name) {
+                                popUpTo(0) {
+                                    inclusive = true
+                                }
+                            }
+                        },
                         onExitAdminMode = {
                             isUserInAdminMode = false
                             navController.navigate(AppView.Home.name) {
-                                popUpTo(navController.graph.findStartDestination().id) { saveState = false }
+                                popUpTo(navController.graph.findStartDestination().id) {
+                                    saveState = false
+                                }
                                 launchSingleTop = true
                                 restoreState = true
                             }
@@ -276,7 +420,13 @@ fun AppRoute() {
                 } else {
                     SettingView(
                         navController = navController,
-                        onLogout = { navController.navigate(AppView.Welcoming.name) { popUpTo(0) { inclusive = true } } }
+                        onLogout = {
+                            navController.navigate(AppView.Welcoming.name) {
+                                popUpTo(0) {
+                                    inclusive = true
+                                }
+                            }
+                        }
                     )
                 }
             }
@@ -294,7 +444,8 @@ fun MyBottomNavigationBar(
 ) {
     NavigationBar(containerColor = Color.White, tonalElevation = 8.dp) {
         items.forEach { item ->
-            val isSelected = currentDestination?.hierarchy?.any { it.route == item.view.name } == true
+            val isSelected =
+                currentDestination?.hierarchy?.any { it.route == item.view.name } == true
             NavigationBarItem(
                 selected = isSelected,
                 onClick = {
@@ -332,8 +483,8 @@ fun MyTopAppBar(
                 text = title,
                 style = MaterialTheme.typography.titleMedium,
                 fontWeight = FontWeight.SemiBold,
-                maxLines = 1, // Agar tidak tumpuk jika kepanjangan
-                modifier = Modifier.padding(horizontal = 8.dp) // Sedikit padding
+                maxLines = 1,
+                modifier = Modifier.padding(horizontal = 8.dp)
             )
         },
         navigationIcon = {

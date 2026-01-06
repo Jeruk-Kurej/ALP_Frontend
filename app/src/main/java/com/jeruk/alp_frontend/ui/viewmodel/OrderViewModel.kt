@@ -3,6 +3,7 @@ package com.jeruk.alp_frontend.ui.viewmodel
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.jeruk.alp_frontend.data.container.AppContainer
+import com.jeruk.alp_frontend.data.service.OrderItemRequest
 import com.jeruk.alp_frontend.ui.model.Order
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
@@ -28,6 +29,9 @@ class OrderViewModel : ViewModel() { // <-- Constructor kosong (No Factory)
     private val _successMessage = MutableStateFlow<String?>(null)
     val successMessage: StateFlow<String?> = _successMessage
 
+    private val _isSuccess = MutableStateFlow(false)
+    val isSuccess: StateFlow<Boolean> = _isSuccess
+
     fun getAllOrders(token: String) {
         viewModelScope.launch {
             _isLoading.value = true
@@ -48,20 +52,24 @@ class OrderViewModel : ViewModel() { // <-- Constructor kosong (No Factory)
         customerName: String,
         paymentId: Int,
         tokoId: Int,
-        orderItems: List<Map<String, Int>>
+        orderItems: List<OrderItemRequest> // 🔥 UBAH TIPE DATA DI SINI
     ) {
         viewModelScope.launch {
             _isLoading.value = true
             _errorMessage.value = null
+            _isSuccess.value = false
             try {
+                // Panggil repository dengan data yang benar
                 val result = repository.createOrder(
                     token, customerName, paymentId, tokoId, orderItems
                 )
                 _selectedOrder.value = result
                 _successMessage.value = "Order created successfully"
-                getAllOrders(token) // Refresh list otomatis setelah buat order
+                _isSuccess.value = true
+                getAllOrders(token)
             } catch (e: Exception) {
                 _errorMessage.value = e.message
+                _isSuccess.value = false
             } finally {
                 _isLoading.value = false
             }
@@ -88,5 +96,9 @@ class OrderViewModel : ViewModel() { // <-- Constructor kosong (No Factory)
     fun clearMessages() {
         _errorMessage.value = null
         _successMessage.value = null
+    }
+
+    fun resetSuccess() {
+        _isSuccess.value = false
     }
 }
