@@ -60,16 +60,25 @@ fun UpdateProductView(
     var selectedImageUri by remember { mutableStateOf<Uri?>(null) }
     var imageFile by remember { mutableStateOf<File?>(null) }
 
-    // Load product data
+    // Load product data and categories
     LaunchedEffect(Unit) {
         android.util.Log.d("UpdateProductView", "Loading product ID: $productId with token")
         productViewModel.getProductById(token, productId)
         categoryViewModel.getAllCategories(token)
     }
 
+    // Log categories when they change
+    LaunchedEffect(categories) {
+        android.util.Log.d("UpdateProductView", "Categories loaded: ${categories.size} items")
+        categories.forEach { cat ->
+            android.util.Log.d("UpdateProductView", "  - Category: id=${cat.id}, name=${cat.name}")
+        }
+    }
+
     // Pre-fill form when product data is loaded
     LaunchedEffect(selectedProduct) {
         selectedProduct?.let { product ->
+            android.util.Log.d("UpdateProductView", "Product loaded: ${product.name}, categoryId=${product.categoryId}, categoryName=${product.categoryName}")
             productName = product.name
             productDescription = product.description
             productPrice = product.price.toString()
@@ -95,9 +104,11 @@ fun UpdateProductView(
         }
     }
 
-    // Navigate back on success
+    // Navigate back on success and refresh data
     LaunchedEffect(productState.isSuccess) {
         if (productState.isSuccess) {
+            // Wait a moment for the product list to refresh from the ViewModel
+            kotlinx.coroutines.delay(300) // Small delay to ensure backend data is consistent
             onSuccess()
         }
     }
