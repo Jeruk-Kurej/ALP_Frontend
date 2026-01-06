@@ -12,7 +12,6 @@ import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Lock
 import androidx.compose.material.icons.filled.Person
-import androidx.compose.material.icons.filled.Star
 import androidx.compose.material.icons.filled.Visibility
 import androidx.compose.material.icons.filled.VisibilityOff
 import androidx.compose.material3.*
@@ -20,6 +19,7 @@ import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
+import androidx.compose.ui.focus.FocusDirection // Tambahan Import Penting
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.LocalContext
@@ -52,18 +52,26 @@ fun LoginView(
     var passwordVisible by remember { mutableStateOf(false) }
     var hasAttemptedLogin by remember { mutableStateOf(false) }
 
+    // --- FUNGSI LOGIN CENTRAL ---
+    // Dibuat variabel agar bisa dipanggil oleh Button DAN Keyboard
+    val performLogin = {
+        if (!isLoading) { // Cek agar tidak double submit
+            hasAttemptedLogin = true
+            focusManager.clearFocus() // Sembunyikan keyboard saat submit
+            authViewModel.login(username, password)
+        }
+    }
+
     LaunchedEffect(userState) {
-        // FIXED: Only auto-navigate if user has actually clicked login button
-        // This prevents auto-login when returning to login screen after logout
         if (userState.token.isNotEmpty() && hasAttemptedLogin) {
             Toast.makeText(context, "Login Berhasil!", Toast.LENGTH_SHORT).show()
             onLoginSuccess()
-            hasAttemptedLogin = false // Reset for next time
+            hasAttemptedLogin = false
         }
         if (userState.isError) {
             Toast.makeText(context, userState.errorMessage, Toast.LENGTH_LONG).show()
-            authViewModel.resetError() // Reset agar tidak muncul Toast berulang
-            hasAttemptedLogin = false // Reset on error
+            authViewModel.resetError()
+            hasAttemptedLogin = false
         }
     }
 
@@ -97,9 +105,9 @@ fun LoginView(
             Image(
                 painter = painterResource(R.drawable.logo_sum_o),
                 contentDescription = null,
-                modifier = Modifier
-                    .size(80.dp)
-            )        }
+                modifier = Modifier.size(80.dp)
+            )
+        }
 
         Column(
             horizontalAlignment = Alignment.CenterHorizontally,
@@ -142,13 +150,19 @@ fun LoginView(
                             placeholder = { Text("Masukkan username", color = Color.LightGray) },
                             leadingIcon = { Icon(Icons.Default.Person, null, tint = Color.LightGray) },
                             modifier = Modifier.fillMaxWidth(),
+
+                            // 1. UPDATE KEYBOARD OPTION USERNAME
                             keyboardOptions = KeyboardOptions(
                                 keyboardType = KeyboardType.Text,
-                                imeAction = ImeAction.Next
+                                imeAction = ImeAction.Next // Tombol jadi "Next"
                             ),
                             keyboardActions = KeyboardActions(
-                                onNext = { focusManager.clearFocus() }
+                                onNext = {
+                                    // Pindah fokus ke bawah (ke password)
+                                    focusManager.moveFocus(FocusDirection.Down)
+                                }
                             ),
+
                             shape = RoundedCornerShape(12.dp),
                             colors = OutlinedTextFieldDefaults.colors(
                                 focusedBorderColor = Color(0xFF3B82F6),
@@ -177,14 +191,20 @@ fun LoginView(
                                 }
                             },
                             visualTransformation = if (passwordVisible) VisualTransformation.None else PasswordVisualTransformation(),
+                            modifier = Modifier.fillMaxWidth(),
+
+                            // 2. UPDATE KEYBOARD OPTION PASSWORD
                             keyboardOptions = KeyboardOptions(
                                 keyboardType = KeyboardType.Password,
-                                imeAction = ImeAction.Done
+                                imeAction = ImeAction.Done // Tombol jadi "Checklist/Done"
                             ),
                             keyboardActions = KeyboardActions(
-                                onDone = { focusManager.clearFocus() }
+                                onDone = {
+                                    // Langsung panggil fungsi Login saat enter
+                                    performLogin()
+                                }
                             ),
-                            modifier = Modifier.fillMaxWidth(),
+
                             shape = RoundedCornerShape(12.dp),
                             colors = OutlinedTextFieldDefaults.colors(
                                 focusedBorderColor = Color(0xFF3B82F6),
@@ -199,10 +219,7 @@ fun LoginView(
 
                     // Login Button
                     Button(
-                        onClick = {
-                            hasAttemptedLogin = true
-                            authViewModel.login(username, password)
-                        },
+                        onClick = { performLogin() }, // Panggil fungsi yang sama
                         enabled = !isLoading,
                         modifier = Modifier
                             .fillMaxWidth()

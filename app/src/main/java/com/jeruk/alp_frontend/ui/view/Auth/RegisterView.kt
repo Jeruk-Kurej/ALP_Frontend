@@ -15,7 +15,6 @@ import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Email
 import androidx.compose.material.icons.filled.Lock
 import androidx.compose.material.icons.filled.Person
-import androidx.compose.material.icons.filled.Star
 import androidx.compose.material.icons.filled.Visibility
 import androidx.compose.material.icons.filled.VisibilityOff
 import androidx.compose.material3.*
@@ -23,6 +22,7 @@ import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
+import androidx.compose.ui.focus.FocusDirection // Import Penting
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.vector.ImageVector
@@ -59,8 +59,21 @@ fun RegisterView(
     var confirmPasswordVisible by remember { mutableStateOf(false) }
     var hasAttemptedRegister by remember { mutableStateOf(false) }
 
+    // --- FUNGSI REGISTER CENTRAL ---
+    // Dipisahkan agar bisa dipanggil Button maupun Keyboard Action
+    val performRegister = {
+        if (!isLoading) {
+            if (password == confirmPassword) {
+                hasAttemptedRegister = true
+                focusManager.clearFocus() // Sembunyikan keyboard saat submit
+                authViewModel.register(username, email, password)
+            } else {
+                Toast.makeText(context, "Password tidak cocok!", Toast.LENGTH_SHORT).show()
+            }
+        }
+    }
+
     LaunchedEffect(userState) {
-        // FIXED: Only auto-navigate if user has actually clicked register button
         if (userState.token.isNotEmpty() && hasAttemptedRegister) {
             Toast.makeText(context, "Register Berhasil!", Toast.LENGTH_SHORT).show()
             onRegisterSuccess()
@@ -103,9 +116,9 @@ fun RegisterView(
             Image(
                 painter = painterResource(R.drawable.logo_sum_o),
                 contentDescription = null,
-                modifier = Modifier
-                    .size(80.dp)
-            )        }
+                modifier = Modifier.size(80.dp)
+            )
+        }
 
         Text(
             text = "Bergabung dengan Sum-O",
@@ -124,7 +137,7 @@ fun RegisterView(
                 modifier = Modifier.padding(24.dp),
                 verticalArrangement = Arrangement.spacedBy(12.dp)
             ) {
-                // Field Username
+                // 1. Field Username -> Next
                 AuthField(
                     label = "Username",
                     value = username,
@@ -132,10 +145,10 @@ fun RegisterView(
                     placeholder = "Masukkan username",
                     icon = Icons.Default.Person,
                     imeAction = ImeAction.Next,
-                    onImeAction = { focusManager.clearFocus() }
+                    onImeAction = { focusManager.moveFocus(FocusDirection.Down) } // Pindah ke Email
                 )
 
-                // Field Email
+                // 2. Field Email -> Next
                 AuthField(
                     label = "Email",
                     value = email,
@@ -144,10 +157,10 @@ fun RegisterView(
                     icon = Icons.Default.Email,
                     keyboardType = KeyboardType.Email,
                     imeAction = ImeAction.Next,
-                    onImeAction = { focusManager.clearFocus() }
+                    onImeAction = { focusManager.moveFocus(FocusDirection.Down) } // Pindah ke Password
                 )
 
-                // Field Password
+                // 3. Field Password -> Next
                 AuthField(
                     label = "Password",
                     value = password,
@@ -156,12 +169,12 @@ fun RegisterView(
                     icon = Icons.Default.Lock,
                     isPassword = true,
                     imeAction = ImeAction.Next,
-                    onImeAction = { focusManager.clearFocus() },
+                    onImeAction = { focusManager.moveFocus(FocusDirection.Down) }, // Pindah ke Konfirmasi
                     passwordVisible = passwordVisible,
                     onPasswordVisibilityChange = { passwordVisible = !passwordVisible }
                 )
 
-                // Field Konfirmasi Password
+                // 4. Field Konfirmasi Password -> Done (Submit)
                 AuthField(
                     label = "Konfirmasi Password",
                     value = confirmPassword,
@@ -170,7 +183,7 @@ fun RegisterView(
                     icon = Icons.Default.Lock,
                     isPassword = true,
                     imeAction = ImeAction.Done,
-                    onImeAction = { focusManager.clearFocus() },
+                    onImeAction = { performRegister() }, // Lakukan Register saat Enter
                     passwordVisible = confirmPasswordVisible,
                     onPasswordVisibilityChange = { confirmPasswordVisible = !confirmPasswordVisible }
                 )
@@ -179,14 +192,7 @@ fun RegisterView(
 
                 // Register Button
                 Button(
-                    onClick = {
-                        if (password == confirmPassword) {
-                            hasAttemptedRegister = true
-                            authViewModel.register(username, email, password)
-                        } else {
-                            Toast.makeText(context, "Password tidak cocok!", Toast.LENGTH_SHORT).show()
-                        }
-                    },
+                    onClick = { performRegister() }, // Panggil fungsi logic yg sama
                     enabled = !isLoading,
                     modifier = Modifier.fillMaxWidth().height(56.dp),
                     shape = RoundedCornerShape(14.dp),
@@ -221,10 +227,10 @@ fun RegisterView(
                 Text("Masuk di sini", color = Color(0xFFBA68C8), fontWeight = FontWeight.Bold)
             }
         }
-
     }
 }
 
+// --- REUSABLE COMPONENT ---
 @Composable
 fun AuthField(
     label: String,
@@ -259,14 +265,17 @@ fun AuthField(
                 }
             } else null,
             visualTransformation = if (isPassword && !passwordVisible) PasswordVisualTransformation() else VisualTransformation.None,
+
+            // KONFIGURASI KEYBOARD
             keyboardOptions = KeyboardOptions(
                 keyboardType = keyboardType,
                 imeAction = imeAction
             ),
             keyboardActions = KeyboardActions(
-                onNext = { onImeAction() },
-                onDone = { onImeAction() }
+                onNext = { onImeAction() }, // Next field
+                onDone = { onImeAction() }  // Submit form
             ),
+
             modifier = Modifier.fillMaxWidth(),
             shape = RoundedCornerShape(12.dp),
             colors = OutlinedTextFieldDefaults.colors(
