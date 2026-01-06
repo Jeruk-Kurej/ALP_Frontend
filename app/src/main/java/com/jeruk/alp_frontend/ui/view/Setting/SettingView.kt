@@ -24,15 +24,23 @@ import androidx.compose.ui.unit.sp
 import androidx.compose.ui.window.Dialog
 import androidx.navigation.NavController
 import com.jeruk.alp_frontend.ui.route.AppView
+import com.jeruk.alp_frontend.data.container.AppContainer
+import kotlinx.coroutines.launch
 
 @Composable
 fun SettingView(
     navController: NavController,
     onLogout: () -> Unit
 ) {
+    // Get preferences repository
+    val userPreferences = AppContainer.userPreferencesRepository
+    val scope = rememberCoroutineScope()
+    
     // State untuk Toggles (Lokal)
     var selectedLanguage by remember { mutableStateOf("Indonesia") }
-    var selectedCurrency by remember { mutableStateOf("IDR") }
+    
+    // ✅ Read currency from DataStore (reactive)
+    val selectedCurrency by userPreferences.selectedCurrency.collectAsState(initial = "IDR")
 
     // State untuk Popups
     var showAdminDialog by remember { mutableStateOf(false) }
@@ -78,9 +86,22 @@ fun SettingView(
                     "Indonesian Rupiah",
                     "Rp",
                     selectedCurrency == "IDR"
-                ) { selectedCurrency = "IDR" }
+                ) { 
+                    // ✅ Save to DataStore
+                    scope.launch { userPreferences.setCurrency("IDR") }
+                }
                 CurrencyOption("US Dollar", "$", selectedCurrency == "USD") {
-                    selectedCurrency = "USD"
+                    // ✅ Save to DataStore
+                    scope.launch { userPreferences.setCurrency("USD") }
+                }
+                CurrencyOption("Euro", "€", selectedCurrency == "EUR") {
+                    scope.launch { userPreferences.setCurrency("EUR") }
+                }
+                CurrencyOption("Japanese Yen", "¥", selectedCurrency == "JPY") {
+                    scope.launch { userPreferences.setCurrency("JPY") }
+                }
+                CurrencyOption("British Pound", "£", selectedCurrency == "GBP") {
+                    scope.launch { userPreferences.setCurrency("GBP") }
                 }
             }
 
