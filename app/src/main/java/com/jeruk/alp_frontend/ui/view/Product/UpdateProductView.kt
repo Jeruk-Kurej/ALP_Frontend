@@ -80,6 +80,7 @@ fun UpdateProductView(
     // --- 2. ISI FORM SAAT DATA PRODUK MASUK ---
     LaunchedEffect(selectedProduct) {
         selectedProduct?.let { product ->
+            android.util.Log.d("UpdateProductView", "Product loaded: ${product.name}, categoryId=${product.categoryId}, categoryName=${product.categoryName}")
             productName = product.name
             productDescription = product.description
             productPrice = product.price.toString()
