@@ -122,26 +122,9 @@ fun UpdateProductView(
         }
     }
 
-    Scaffold(
-        topBar = {
-            TopAppBar(
-                title = { Text("Edit Produk", fontWeight = FontWeight.Bold) },
-                navigationIcon = {
-                    IconButton(onClick = { navController.popBackStack() }) {
-                        Icon(Icons.Default.ArrowBack, contentDescription = "Back")
-                    }
-                },
-                colors = TopAppBarDefaults.topAppBarColors(
-                    containerColor = Color.White,
-                    titleContentColor = Color(0xFF1E293B)
-                )
-            )
-        }
-    ) { padding ->
         Column(
             modifier = Modifier
                 .fillMaxSize()
-                .padding(padding)
                 .background(Color(0xFFF5F5F7))
                 .verticalScroll(rememberScrollState())
                 .padding(24.dp)
@@ -386,4 +369,3 @@ fun UpdateProductView(
             }
         }
     }
-}
