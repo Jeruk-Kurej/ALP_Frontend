@@ -40,6 +40,8 @@ import com.jeruk.alp_frontend.ui.viewmodel.CategoryViewModel
 import com.jeruk.alp_frontend.ui.viewmodel.ProductViewModel
 import java.text.NumberFormat
 import java.util.Locale
+import com.jeruk.alp_frontend.utils.CurrencyFormatter
+import com.jeruk.alp_frontend.data.container.AppContainer
 
 // Pastikan import BottomSheet benar sesuai struktur project kamu
 import com.jeruk.alp_frontend.ui.view.Component.ProductDetailBottomSheet
@@ -317,7 +319,9 @@ fun ProductGridItem(product: Product, categoryName: String, onClick: () -> Unit)
                 Spacer(modifier = Modifier.height(4.dp))
                 Text(text = product.description, color = Color.Gray, fontSize = 12.sp, maxLines = 2, overflow = TextOverflow.Ellipsis, lineHeight = 16.sp, modifier = Modifier.height(32.dp))
                 Spacer(modifier = Modifier.height(8.dp))
-                Text(text = NumberFormat.getCurrencyInstance(Locale("id", "ID")).format(product.price), fontWeight = FontWeight.Bold, color = Color(0xFFA855F7), fontSize = 14.sp)
+                // Get current currency preference
+                val selectedCurrency by AppContainer.userPreferencesRepository.selectedCurrency.collectAsState(initial = "IDR")
+                Text(text = CurrencyFormatter.formatPrice(product.price, selectedCurrency), fontWeight = FontWeight.Bold, color = Color(0xFFA855F7), fontSize = 14.sp)
             }
         }
     }

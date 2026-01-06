@@ -22,6 +22,8 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import coil.compose.AsyncImage
+import com.jeruk.alp_frontend.utils.CurrencyFormatter
+import com.jeruk.alp_frontend.data.container.AppContainer
 
 // Warna Custom
 val PurplePrimary = Color(0xFFBA68C8)
@@ -131,7 +133,8 @@ fun ProductDetailBottomSheet(
                 Spacer(modifier = Modifier.height(8.dp))
                 Text(text = productDescription, color = GrayText, fontSize = 14.sp)
                 Spacer(modifier = Modifier.height(12.dp))
-                Text(text = "Rp ${formatRupiahSimple(productPrice)}", color = PurpleText, fontSize = 20.sp, fontWeight = FontWeight.Bold)
+                val selectedCurrency by AppContainer.userPreferencesRepository.selectedCurrency.collectAsState(initial = "IDR")
+                Text(text = CurrencyFormatter.formatPrice(productPrice, selectedCurrency), color = PurpleText, fontSize = 20.sp, fontWeight = FontWeight.Bold)
             }
 
             Spacer(modifier = Modifier.height(24.dp))
@@ -174,8 +177,9 @@ fun ProductDetailBottomSheet(
                     horizontalArrangement = Arrangement.SpaceBetween
                 ) {
                     Text(text = "Total Harga", fontWeight = FontWeight.Medium)
+                    val selectedCurrency by AppContainer.userPreferencesRepository.selectedCurrency.collectAsState(initial = "IDR")
                     Text(
-                        text = "Rp ${formatRupiahSimple(totalPrice)}",
+                        text = CurrencyFormatter.formatPrice(totalPrice, selectedCurrency),
                         color = PurpleText,
                         fontWeight = FontWeight.Bold,
                         fontSize = 18.sp

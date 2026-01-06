@@ -30,6 +30,8 @@ import com.jeruk.alp_frontend.ui.route.AppView
 import com.jeruk.alp_frontend.ui.viewmodel.ProductViewModel
 import java.text.NumberFormat
 import java.util.Locale
+import com.jeruk.alp_frontend.utils.CurrencyFormatter
+import com.jeruk.alp_frontend.data.container.AppContainer
 
 @Composable
 fun OrderPageView(
@@ -290,9 +292,10 @@ fun OrderSummarySection(subTotal: Double, tax: Double, grandTotal: Double, onChe
 
 @Composable
 fun SummaryRow(label: String, amount: Double) {
+    val selectedCurrency by AppContainer.userPreferencesRepository.selectedCurrency.collectAsState(initial = "IDR")
     Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween) {
         Text(label, color = Color.Gray, fontSize = 14.sp)
-        Text(formatRupiah(amount), color = Color.Gray, fontSize = 14.sp)
+        Text(CurrencyFormatter.formatPrice(amount, selectedCurrency), color = Color.Gray, fontSize = 14.sp)
     }
 }
 

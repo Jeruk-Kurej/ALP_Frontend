@@ -25,6 +25,8 @@ import com.jeruk.alp_frontend.ui.route.AppView
 import com.jeruk.alp_frontend.ui.viewmodel.AnalysisViewModel
 import java.text.NumberFormat
 import java.util.Locale
+import com.jeruk.alp_frontend.utils.CurrencyFormatter
+import com.jeruk.alp_frontend.data.container.AppContainer
 
 @Composable
 fun AnalysisPageView(
@@ -41,9 +43,10 @@ fun AnalysisPageView(
     }
 
     // Fungsi helper format Rupiah
+    @Composable
     fun formatRupiah(amount: Double): String {
-        val format = NumberFormat.getCurrencyInstance(Locale("in", "ID"))
-        return format.format(amount).replace("Rp", "Rp ").substringBefore(",00")
+        val selectedCurrency by AppContainer.userPreferencesRepository.selectedCurrency.collectAsState(initial = "IDR")
+        return CurrencyFormatter.formatPrice(amount, selectedCurrency)
     }
 
     Column(
