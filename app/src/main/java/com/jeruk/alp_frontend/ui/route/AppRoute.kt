@@ -37,8 +37,11 @@ import com.jeruk.alp_frontend.ui.view.Product.ProductAdminView
 import com.jeruk.alp_frontend.ui.view.Product.UpdateProductView
 import com.jeruk.alp_frontend.ui.view.Category.AddCategoryView
 import com.jeruk.alp_frontend.ui.view.Category.UpdateCategoryView
+import com.jeruk.alp_frontend.ui.view.Order.CashPageView
 import com.jeruk.alp_frontend.ui.view.Order.OrderPageView
 import com.jeruk.alp_frontend.ui.view.Order.PaymentPageView
+import com.jeruk.alp_frontend.ui.view.Order.QRISPageView
+import com.jeruk.alp_frontend.ui.view.Order.SuccessPageView
 import com.jeruk.alp_frontend.ui.view.Product.ProductMenuView
 import com.jeruk.alp_frontend.ui.view.Toko.CreateTokoView
 import com.jeruk.alp_frontend.ui.view.Toko.TokoAdminView
@@ -67,8 +70,11 @@ enum class AppView(
     // --- Waiter Mode ---
     Home("Pilih Toko", Icons.Filled.Storefront, Icons.Outlined.Storefront),
     ProductMenu("Menu Toko"),
-    OrderPage("Keranjang Belanja"), // 🔥 Tambahan: Agar TopBar otomatis judul
-    PaymentPage("Pembayaran"), // 🔥 Tambahkan ini
+    OrderPage("Keranjang Belanja"),
+    PaymentPage("Pembayaran"),
+    QRISPage("Scan QRIS"),
+    CashPage("Pembayaran Tunai"),
+    SuccessPage("Pembayaran Selesai"),
 
     // --- Admin Mode ---
     Analysis("Dashboard", Icons.Filled.GridView, Icons.Outlined.GridView),
@@ -109,7 +115,15 @@ fun AppRoute() {
         AppView.AddProduct.name, AppView.UpdateProduct.name, AppView.AddCategory.name,
         AppView.UpdateCategory.name
     )
-    val waiterRoutes = listOf(AppView.Home.name, AppView.ProductMenu.name, AppView.OrderPage.name)
+    val waiterRoutes = listOf(
+        AppView.Home.name,
+        AppView.ProductMenu.name,
+        AppView.OrderPage.name,
+        AppView.PaymentPage.name,
+        AppView.QRISPage.name,
+        AppView.CashPage.name,
+        AppView.SuccessPage.name
+    )
 
     var isUserInAdminMode by remember { mutableStateOf(false) }
 
@@ -232,6 +246,21 @@ fun AppRoute() {
                     navController = navController,
                     productViewModel = productViewModel
                 )
+            }
+
+            composable(AppView.QRISPage.name) {
+                QRISPageView(
+                    navController,
+                    productViewModel
+                )
+            }
+
+            composable(AppView.CashPage.name) {
+                CashPageView(navController, productViewModel)
+            }
+
+            composable(AppView.SuccessPage.name) {
+                SuccessPageView(navController, productViewModel)
             }
 
             // --- ADMIN MODE ---

@@ -100,7 +100,9 @@ fun PaymentPageView(
             icon = Icons.Default.QrCodeScanner,
             iconBgColor = Color(0xFFF5F3FF), // Background ungu muda
             iconTintColor = Color(0xFF8B5CF6), // Ikon ungu
-            onClick = { /* Navigasi ke Page QRIS */ }
+            onClick = {
+                navController.navigate("QRISPage")
+            }
         )
 
         Spacer(modifier = Modifier.height(16.dp))
@@ -111,7 +113,9 @@ fun PaymentPageView(
             icon = Icons.Default.Payments,
             iconBgColor = Color(0xFFF0FDF4), // Background hijau muda
             iconTintColor = Color(0xFF22C55E), // Ikon hijau
-            onClick = { /* Logika pembayaran tunai */ }
+            onClick = {
+                navController.navigate("CashPage")
+            }
         )
     }
 }
