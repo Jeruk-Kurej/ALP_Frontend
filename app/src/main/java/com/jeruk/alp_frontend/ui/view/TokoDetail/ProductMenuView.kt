@@ -7,13 +7,15 @@ import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyRow
 import androidx.compose.foundation.lazy.grid.GridCells
 import androidx.compose.foundation.lazy.grid.LazyVerticalGrid
-import androidx.compose.foundation.lazy.grid.items
-import androidx.compose.foundation.lazy.items
+import androidx.compose.foundation.lazy.grid.items // Import untuk Grid
+import androidx.compose.foundation.lazy.items      // 🔥 PENTING: Import ini yang sebelumnya hilang (untuk LazyRow)
+import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.text.KeyboardActions
 import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Search
+import androidx.compose.material.icons.filled.ShoppingCart
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
@@ -39,7 +41,7 @@ import com.jeruk.alp_frontend.ui.viewmodel.ProductViewModel
 import java.text.NumberFormat
 import java.util.Locale
 
-// Pastikan import BottomSheet benar
+// Pastikan import BottomSheet benar sesuai struktur project kamu
 import com.jeruk.alp_frontend.ui.view.Component.ProductDetailBottomSheet
 
 @Composable
@@ -56,6 +58,10 @@ fun ProductMenuView(
     val categories by categoryViewModel.categories.collectAsState()
     val isLoadingProducts by productViewModel.isLoading.collectAsState()
 
+    // Ambil data Cart
+    val cartItems by productViewModel.cartItems.collectAsState()
+    val totalItems = cartItems.values.sum()
+
     var searchQuery by remember { mutableStateOf("") }
     var selectedCategoryId by remember { mutableStateOf<Int?>(null) }
 
@@ -68,20 +74,19 @@ fun ProductMenuView(
         productViewModel.getAllProducts(token)
     }
 
-    // 🔥 BARU 1: Ambil dulu semua produk milik toko ini
+    // Filter Produk Toko Ini
     val storeProducts = remember(products, tokoId) {
         products.filter { it.tokoIds.contains(tokoId) }
     }
 
-    // 🔥 BARU 2: Filter Kategori
-    // Logikanya: Hanya simpan kategori jika ada minimal 1 produk di storeProducts yang punya kategori ID tersebut
+    // Filter Kategori (Hilangkan yang kosong)
     val availableCategories = remember(categories, storeProducts) {
         categories.filter { category ->
             storeProducts.any { product -> product.categoryId == category.id }
         }
     }
 
-    // Filter Produk Akhir (Berdasarkan Search & Kategori yang dipilih)
+    // Filter Produk Akhir (Search & Kategori)
     val filteredProducts = remember(storeProducts, searchQuery, selectedCategoryId) {
         storeProducts.filter { product ->
             val matchSearch = product.name.contains(searchQuery, ignoreCase = true)
@@ -90,8 +95,10 @@ fun ProductMenuView(
         }
     }
 
-    // --- UI UTAMA ---
+    // --- UI UTAMA (Gunakan Box untuk menumpuk Floating Button) ---
     Box(modifier = Modifier.fillMaxSize().background(Color.White)) {
+
+        // 1. CONTENT PAGE
         Column(modifier = Modifier.fillMaxSize()) {
             Spacer(modifier = Modifier.height(16.dp))
 
@@ -101,7 +108,6 @@ fun ProductMenuView(
             Spacer(modifier = Modifier.height(16.dp))
 
             // Filter Kategori
-            // 🔥 UPDATE: Gunakan 'availableCategories' bukan 'categories' mentah
             CategoryFilterSection(
                 categories = availableCategories,
                 selectedId = selectedCategoryId,
@@ -117,14 +123,14 @@ fun ProductMenuView(
                 }
             } else if (filteredProducts.isEmpty()) {
                 Box(Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
-                    // Pesan beda jika karena search atau memang toko kosong
                     val msg = if (storeProducts.isEmpty()) "Toko ini belum memiliki menu" else "Menu tidak ditemukan"
                     Text(msg, color = Color.Gray)
                 }
             } else {
                 LazyVerticalGrid(
                     columns = GridCells.Fixed(2),
-                    contentPadding = PaddingValues(horizontal = 20.dp, vertical = 10.dp),
+                    // Tambah bottom padding agar item bawah tidak tertutup tombol cart
+                    contentPadding = PaddingValues(start = 20.dp, end = 20.dp, bottom = 100.dp),
                     horizontalArrangement = Arrangement.spacedBy(16.dp),
                     verticalArrangement = Arrangement.spacedBy(16.dp)
                 ) {
@@ -136,12 +142,28 @@ fun ProductMenuView(
                             showBottomSheet = true
                         }
                     }
-                    item { Spacer(modifier = Modifier.height(80.dp)) }
                 }
             }
         }
 
-        // Popup Bottom Sheet
+        // 2. FLOATING CART BUTTON (Muncul jika item > 0)
+        if (totalItems > 0) {
+            Box(
+                modifier = Modifier
+                    .align(Alignment.BottomEnd)
+                    .padding(24.dp)
+            ) {
+                FloatingCartButton(
+                    itemCount = totalItems,
+                    onClick = {
+                        // Pastikan route "order_page" sudah ada di NavHost
+                        navController.navigate("order_page")
+                    }
+                )
+            }
+        }
+
+        // 3. POPUP BOTTOM SHEET
         if (showBottomSheet && selectedProduct != null) {
             val categoryName = categories.find { it.id == selectedProduct!!.categoryId }?.name ?: "Menu"
 
@@ -151,7 +173,7 @@ fun ProductMenuView(
                     selectedProduct = null
                 },
                 onAddToCart = { quantity ->
-                    android.util.Log.d("Cart", "Add ${selectedProduct!!.name} qty: $quantity")
+                    productViewModel.addToCart(selectedProduct!!, quantity)
                     showBottomSheet = false
                 },
                 productName = selectedProduct!!.name,
@@ -164,7 +186,62 @@ fun ProductMenuView(
     }
 }
 
-// --- KOMPONEN PENDUKUNG (TIDAK ADA PERUBAHAN) ---
+// --- KOMPONEN BARU: FLOATING CART BUTTON ---
+@Composable
+fun FloatingCartButton(
+    itemCount: Int,
+    onClick: () -> Unit
+) {
+    // Gradient Ungu
+    val brush = Brush.linearGradient(
+        colors = listOf(Color(0xFF8B5CF6), Color(0xFFC084FC))
+    )
+
+    Box(
+        modifier = Modifier.size(72.dp),
+        contentAlignment = Alignment.BottomStart
+    ) {
+        // Tombol Utama
+        Box(
+            modifier = Modifier
+                .size(60.dp)
+                .align(Alignment.Center)
+                .shadow(8.dp, CircleShape)
+                .clip(CircleShape)
+                .background(brush)
+                .clickable { onClick() },
+            contentAlignment = Alignment.Center
+        ) {
+            Icon(
+                imageVector = Icons.Default.ShoppingCart,
+                contentDescription = "Cart",
+                tint = Color.White,
+                modifier = Modifier.size(28.dp)
+            )
+        }
+
+        // Badge Notifikasi (Merah)
+        Box(
+            modifier = Modifier
+                .align(Alignment.TopEnd)
+                .offset(x = (-4).dp, y = 4.dp)
+                .size(24.dp)
+                .clip(CircleShape)
+                .background(Color(0xFFFF3B30))
+                .border(2.dp, Color.White, CircleShape),
+            contentAlignment = Alignment.Center
+        ) {
+            Text(
+                text = itemCount.toString(),
+                color = Color.White,
+                fontSize = 12.sp,
+                fontWeight = FontWeight.Bold
+            )
+        }
+    }
+}
+
+// --- KOMPONEN PENDUKUNG LAINNYA ---
 @Composable
 fun SearchBarComponent(query: String, onQueryChange: (String) -> Unit) {
     val focusManager = LocalFocusManager.current
@@ -191,7 +268,15 @@ fun SearchBarComponent(query: String, onQueryChange: (String) -> Unit) {
 fun CategoryFilterSection(categories: List<Category>, selectedId: Int?, onSelect: (Int?) -> Unit) {
     LazyRow(contentPadding = PaddingValues(horizontal = 20.dp), horizontalArrangement = Arrangement.spacedBy(12.dp)) {
         item { FilterChipItem(text = "Semua", isSelected = selectedId == null, onClick = { onSelect(null) }) }
-        items(categories) { category -> FilterChipItem(text = category.name, isSelected = selectedId == category.id, onClick = { onSelect(category.id) }) }
+
+        // Bagian ini sekarang aman karena sudah ada import androidx.compose.foundation.lazy.items
+        items(categories) { category ->
+            FilterChipItem(
+                text = category.name,
+                isSelected = selectedId == category.id,
+                onClick = { onSelect(category.id) }
+            )
+        }
     }
 }
 
