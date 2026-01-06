@@ -37,6 +37,7 @@ import com.jeruk.alp_frontend.ui.view.Product.ProductAdminView
 import com.jeruk.alp_frontend.ui.view.Product.UpdateProductView
 import com.jeruk.alp_frontend.ui.view.Category.AddCategoryView
 import com.jeruk.alp_frontend.ui.view.Category.UpdateCategoryView
+import com.jeruk.alp_frontend.ui.view.Order.OrderPageView
 import com.jeruk.alp_frontend.ui.view.Product.ProductMenuView
 import com.jeruk.alp_frontend.ui.view.Toko.CreateTokoView
 import com.jeruk.alp_frontend.ui.view.Toko.TokoAdminView
@@ -44,6 +45,7 @@ import com.jeruk.alp_frontend.ui.view.Toko.TokoView
 import com.jeruk.alp_frontend.ui.view.Toko.UpdateTokoView
 import com.jeruk.alp_frontend.ui.view.WelcomingView
 import com.jeruk.alp_frontend.ui.viewmodel.AuthViewModel
+import com.jeruk.alp_frontend.ui.viewmodel.ProductViewModel
 
 // 1. Model untuk Item di Bottom Bar
 data class BottomNavItem(
@@ -63,7 +65,8 @@ enum class AppView(
 
     // --- Waiter Mode ---
     Home("Pilih Toko", Icons.Filled.Storefront, Icons.Outlined.Storefront),
-    ProductMenu("Menu Toko"), // Judul Default (akan ditimpa nanti)
+    ProductMenu("Menu Toko"),
+    OrderPage("Keranjang Belanja"), // 🔥 Tambahan: Agar TopBar otomatis judul ini
 
     // --- Admin Mode ---
     Analysis("Dashboard", Icons.Filled.GridView, Icons.Outlined.GridView),
@@ -87,29 +90,25 @@ enum class AppView(
 @Composable
 fun AppRoute() {
     val navController = rememberNavController()
-    val authViewModel: AuthViewModel = viewModel()
-    val userState by authViewModel.userState.collectAsState()
 
+    // --- VIEWMODELS ---
+    val authViewModel: AuthViewModel = viewModel()
+    // 🔥 PENTING: Inisialisasi di sini agar Cart data tersimpan saat pindah page
+    val productViewModel: ProductViewModel = viewModel()
+
+    val userState by authViewModel.userState.collectAsState()
     val navBackStackEntry by navController.currentBackStackEntryAsState()
     val currentRoute = navBackStackEntry?.destination?.route
 
     // Logic menentukan mode Admin/Waiter
     val adminRoutes = listOf(
-        AppView.Analysis.name,
-        AppView.AdminToko.name,
-        AppView.AdminProduk.name,
-        AppView.AnalysisDetail.name,
-        AppView.CreateToko.name,
-        AppView.UpdateToko.name,
-        AppView.AddProduct.name,
-        AppView.UpdateProduct.name,
-        AppView.AddCategory.name,
+        AppView.Analysis.name, AppView.AdminToko.name, AppView.AdminProduk.name,
+        AppView.AnalysisDetail.name, AppView.CreateToko.name, AppView.UpdateToko.name,
+        AppView.AddProduct.name, AppView.UpdateProduct.name, AppView.AddCategory.name,
         AppView.UpdateCategory.name
     )
-    val waiterRoutes = listOf(
-        AppView.Home.name,
-        AppView.ProductMenu.name
-    )
+    val waiterRoutes = listOf(AppView.Home.name, AppView.ProductMenu.name, AppView.OrderPage.name)
+
     var isUserInAdminMode by remember { mutableStateOf(false) }
 
     LaunchedEffect(currentRoute) {
@@ -122,11 +121,8 @@ fun AppRoute() {
     }
 
     val rootPages = listOf(
-        AppView.Home.name,
-        AppView.Analysis.name,
-        AppView.AdminToko.name,
-        AppView.AdminProduk.name,
-        AppView.Setting.name
+        AppView.Home.name, AppView.Analysis.name, AppView.AdminToko.name,
+        AppView.AdminProduk.name, AppView.Setting.name
     )
 
     val canNavigateBack = currentRoute !in rootPages && navController.previousBackStackEntry != null
@@ -137,22 +133,16 @@ fun AppRoute() {
             val currentBaseRoute = currentRoute?.split("/")?.first()
 
             if (currentBaseRoute !in noHeaderPages && currentRoute != null) {
-                // 1. Cari Enum View yang sesuai
-                val currentView = AppView.entries.find { it.name == currentBaseRoute }
-                    ?: AppView.Welcoming
+                val currentView = AppView.entries.find { it.name == currentBaseRoute } ?: AppView.Welcoming
 
-                // 2. LOGIC JUDUL DINAMIS (Nama Toko - Lokasi)
                 val titleText = if (currentBaseRoute == AppView.ProductMenu.name) {
                     val name = navBackStackEntry?.arguments?.getString("tokoName") ?: ""
                     val address = navBackStackEntry?.arguments?.getString("tokoAddress") ?: ""
-
-                    // Gabungkan Nama dan Alamat
                     if (address.isNotEmpty()) "$name - $address" else name
                 } else {
                     currentView.title
                 }
 
-                // 3. Panggil TopBar
                 MyTopAppBar(titleText, navController, canNavigateBack)
             }
         },
@@ -206,25 +196,30 @@ fun AppRoute() {
                 TokoView(token = userState.token, navController = navController)
             }
 
-            // === UPDATE RUTE DI SINI (Menambahkan Address) ===
             composable(
                 route = "${AppView.ProductMenu.name}/{tokoId}/{tokoName}/{tokoAddress}",
                 arguments = listOf(
                     navArgument("tokoId") { type = NavType.IntType },
                     navArgument("tokoName") { type = NavType.StringType },
-                    navArgument("tokoAddress") { type = NavType.StringType } // Parameter Baru
+                    navArgument("tokoAddress") { type = NavType.StringType }
                 )
             ) { backStackEntry ->
                 val tokoId = backStackEntry.arguments?.getInt("tokoId") ?: 0
                 val tokoName = backStackEntry.arguments?.getString("tokoName") ?: "Toko"
-                // Address tidak perlu dikirim ke ProductMenuView jika hanya untuk judul TopBar
-                // tapi kalau mau dikirim juga boleh.
 
                 ProductMenuView(
                     navController = navController,
                     token = userState.token,
                     tokoId = tokoId,
-                    tokoName = tokoName
+                    tokoName = tokoName,
+                    productViewModel = productViewModel // 🔥 Share ViewModel
+                )
+            }
+
+            composable(AppView.OrderPage.name) {
+                OrderPageView(
+                    navController = navController,
+                    productViewModel = productViewModel // 🔥 Share ViewModel
                 )
             }
 
@@ -330,8 +325,8 @@ fun MyTopAppBar(
                 text = title,
                 style = MaterialTheme.typography.titleMedium,
                 fontWeight = FontWeight.SemiBold,
-                maxLines = 1, // Agar tidak tumpuk jika kepanjangan
-                modifier = Modifier.padding(horizontal = 8.dp) // Sedikit padding
+                maxLines = 1,
+                modifier = Modifier.padding(horizontal = 8.dp)
             )
         },
         navigationIcon = {

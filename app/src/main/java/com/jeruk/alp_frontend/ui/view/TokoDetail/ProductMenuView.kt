@@ -156,8 +156,8 @@ fun ProductMenuView(
                 FloatingCartButton(
                     itemCount = totalItems,
                     onClick = {
-                        // Pastikan route "order_page" sudah ada di NavHost
-                        navController.navigate("order_page")
+                        // GANTI string "order_page" MENJADI:
+                        navController.navigate(com.jeruk.alp_frontend.ui.route.AppView.OrderPage.name)
                     }
                 )
             }

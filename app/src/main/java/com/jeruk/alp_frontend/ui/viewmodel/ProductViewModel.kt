@@ -170,4 +170,27 @@ class ProductViewModel : ViewModel() {
         _isSuccess.value = false
         _selectedProduct.value = null
     }
+
+    fun updateCart(product: Product, quantity: Int) {
+        val currentCart = _cartItems.value.toMutableMap()
+        if (quantity > 0) {
+            currentCart[product.id] = quantity
+        } else {
+            currentCart.remove(product.id)
+        }
+        _cartItems.value = currentCart
+    }
+
+    // Fungsi hapus item total
+    fun removeFromCart(product: Product) {
+        val currentCart = _cartItems.value.toMutableMap()
+        currentCart.remove(product.id)
+        _cartItems.value = currentCart
+    }
+
+    // Fungsi checkout (reset keranjang)
+    fun clearCart() {
+        _cartItems.value = emptyMap()
+    }
+
 }
