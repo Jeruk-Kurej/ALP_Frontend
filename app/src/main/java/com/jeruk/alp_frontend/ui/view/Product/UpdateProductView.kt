@@ -10,7 +10,6 @@ import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.filled.ArrowBack
 import androidx.compose.material.icons.filled.PhotoCamera
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
@@ -44,44 +43,41 @@ fun UpdateProductView(
 ) {
     val context = LocalContext.current
 
-    // State from ViewModels
+    // --- VIEWMODEL STATE ---
     val selectedProduct by productViewModel.selectedProduct.collectAsState()
     val isLoading by productViewModel.isLoading.collectAsState()
     val categories by categoryViewModel.categories.collectAsState()
 
-    // 👇 UPDATE: Pakai variable baru (isSuccess & errorMessage)
+    // State Status (Sukses/Error)
     val isSuccess by productViewModel.isSuccess.collectAsState()
     val errorMessage by productViewModel.errorMessage.collectAsState()
 
-    // Form State
+    // --- FORM STATE ---
     var productName by remember { mutableStateOf("") }
     var productDescription by remember { mutableStateOf("") }
     var productPrice by remember { mutableStateOf("") }
+
+    // State Kategori
     var selectedCategoryId by remember { mutableStateOf<Int?>(null) }
     var selectedCategoryName by remember { mutableStateOf("") }
     var categoryExpanded by remember { mutableStateOf(false) }
+
+    // 🔥 PENTING: State untuk menyimpan tokoIds agar tidak hilang saat update
+    var currentTokoIds by remember { mutableStateOf("") }
+
+    // State Gambar
     var selectedImageUri by remember { mutableStateOf<Uri?>(null) }
     var imageFile by remember { mutableStateOf<File?>(null) }
 
-    // Load product data and categories
+    // --- 1. FETCH DATA AWAL ---
     LaunchedEffect(Unit) {
-        // Bersihkan pesan error/sukses sebelumnya
         productViewModel.clearMessages()
-
-        android.util.Log.d("UpdateProductView", "Loading product ID: $productId with token")
+        // Ambil detail produk & list kategori
         productViewModel.getProductById(token, productId)
         categoryViewModel.getAllCategories(token)
     }
 
-    // Log categories when they change
-    LaunchedEffect(categories) {
-        android.util.Log.d("UpdateProductView", "Categories loaded: ${categories.size} items")
-        categories.forEach { cat ->
-            android.util.Log.d("UpdateProductView", "  - Category: id=${cat.id}, name=${cat.name}")
-        }
-    }
-
-    // Pre-fill form when product data is loaded
+    // --- 2. ISI FORM SAAT DATA PRODUK MASUK ---
     LaunchedEffect(selectedProduct) {
         selectedProduct?.let { product ->
             android.util.Log.d("UpdateProductView", "Product loaded: ${product.name}, categoryId=${product.categoryId}, categoryName=${product.categoryName}")
@@ -89,292 +85,231 @@ fun UpdateProductView(
             productDescription = product.description
             productPrice = product.price.toString()
             selectedCategoryId = product.categoryId
-            selectedCategoryName = product.categoryName // Pastikan field ini ada di Model Product kamu
+            selectedCategoryName = product.categoryName ?: "Pilih Kategori"
+
+            // 🔥 FIX UTAMA: Simpan tokoIds lama ke variabel state
+            // Asumsi: product.tokoIds adalah List<Int>. Kita ubah jadi string "1,2,3"
+            currentTokoIds = product.tokoIds.joinToString(",")
         }
     }
 
-    // Image Picker
+    // --- 3. HANDLE SUKSES UPDATE ---
+    LaunchedEffect(isSuccess) {
+        if (isSuccess) {
+            onSuccess() // Navigasi balik atau tampilkan pesan
+            productViewModel.clearMessages()
+        }
+    }
+
+    // --- IMAGE PICKER ---
     val imagePicker = rememberLauncherForActivityResult(
         contract = ActivityResultContracts.GetContent()
     ) { uri: Uri? ->
         uri?.let {
             selectedImageUri = it
             try {
-                // Convert Uri to File
                 val inputStream = context.contentResolver.openInputStream(it)
-                val file = File(context.cacheDir, "temp_image_${System.currentTimeMillis()}.jpg")
+                val file = File(context.cacheDir, "temp_update_${System.currentTimeMillis()}.jpg")
                 val outputStream = FileOutputStream(file)
                 inputStream?.copyTo(outputStream)
                 imageFile = file
                 inputStream?.close()
                 outputStream.close()
             } catch (e: Exception) {
-                // Handle error properly in real app
                 e.printStackTrace()
             }
         }
     }
 
-    // 👇 UPDATE: Logic sukses pakai variable isSuccess
-    LaunchedEffect(isSuccess) {
-        if (isSuccess) {
-            onSuccess()
-            // Reset pesan agar tidak trigger lagi
-            productViewModel.clearMessages()
-        }
-    }
+    // --- UI CONTENT ---
+    Column(
+        modifier = Modifier
+            .fillMaxSize()
+            .background(Color(0xFFF5F5F7))
+            .verticalScroll(rememberScrollState())
+            .padding(24.dp)
+    ) {
+        // Input: Nama Produk
+        Text("Nama Produk", fontSize = 14.sp, fontWeight = FontWeight.SemiBold, color = Color(0xFF475569), modifier = Modifier.padding(bottom = 8.dp))
+        OutlinedTextField(
+            value = productName,
+            onValueChange = { productName = it },
+            modifier = Modifier.fillMaxWidth(),
+            placeholder = { Text("Masukkan nama produk") },
+            shape = RoundedCornerShape(12.dp),
+            colors = OutlinedTextFieldDefaults.colors(
+                focusedBorderColor = Color(0xFF3B82F6),
+                unfocusedBorderColor = Color(0xFFE2E8F0),
+            )
+        )
+        Spacer(modifier = Modifier.height(16.dp))
 
-    // Clear ViewModel state on dispose
-    DisposableEffect(Unit) {
-        onDispose {
-            productViewModel.clearMessages()
-        }
-    }
+        // Input: Deskripsi
+        Text("Deskripsi", fontSize = 14.sp, fontWeight = FontWeight.SemiBold, color = Color(0xFF475569), modifier = Modifier.padding(bottom = 8.dp))
+        OutlinedTextField(
+            value = productDescription,
+            onValueChange = { productDescription = it },
+            modifier = Modifier.fillMaxWidth().height(100.dp),
+            placeholder = { Text("Masukkan deskripsi produk") },
+            shape = RoundedCornerShape(12.dp),
+            colors = OutlinedTextFieldDefaults.colors(
+                focusedBorderColor = Color(0xFF3B82F6),
+                unfocusedBorderColor = Color(0xFFE2E8F0),
+            )
+        )
+        Spacer(modifier = Modifier.height(16.dp))
 
-        Column(
-            modifier = Modifier
-                .fillMaxSize()
-                .background(Color(0xFFF5F5F7))
-                .verticalScroll(rememberScrollState())
-                .padding(24.dp)
+        // Input: Harga
+        Text("Harga", fontSize = 14.sp, fontWeight = FontWeight.SemiBold, color = Color(0xFF475569), modifier = Modifier.padding(bottom = 8.dp))
+        OutlinedTextField(
+            value = productPrice,
+            onValueChange = { if (it.all { char -> char.isDigit() }) productPrice = it },
+            modifier = Modifier.fillMaxWidth(),
+            placeholder = { Text("Masukkan harga produk") },
+            shape = RoundedCornerShape(12.dp),
+            colors = OutlinedTextFieldDefaults.colors(
+                focusedBorderColor = Color(0xFF3B82F6),
+                unfocusedBorderColor = Color(0xFFE2E8F0),
+            )
+        )
+        Spacer(modifier = Modifier.height(16.dp))
+
+        // Input: Kategori (Dropdown)
+        Text("Kategori", fontSize = 14.sp, fontWeight = FontWeight.SemiBold, color = Color(0xFF475569), modifier = Modifier.padding(bottom = 8.dp))
+        ExposedDropdownMenuBox(
+            expanded = categoryExpanded,
+            onExpandedChange = { categoryExpanded = !categoryExpanded }
         ) {
-            // Product Name
-            Text(
-                text = "Nama Produk",
-                fontSize = 14.sp,
-                fontWeight = FontWeight.SemiBold,
-                color = Color(0xFF475569),
-                modifier = Modifier.padding(bottom = 8.dp)
-            )
             OutlinedTextField(
-                value = productName,
-                onValueChange = { productName = it },
-                modifier = Modifier.fillMaxWidth(),
-                placeholder = { Text("Masukkan nama produk") },
-                shape = RoundedCornerShape(12.dp),
-                colors = OutlinedTextFieldDefaults.colors(
-                    focusedBorderColor = Color(0xFF3B82F6),
-                    unfocusedBorderColor = Color(0xFFE2E8F0),
-                )
-            )
-            Spacer(modifier = Modifier.height(16.dp))
-
-            // Description
-            Text(
-                text = "Deskripsi",
-                fontSize = 14.sp,
-                fontWeight = FontWeight.SemiBold,
-                color = Color(0xFF475569),
-                modifier = Modifier.padding(bottom = 8.dp)
-            )
-            OutlinedTextField(
-                value = productDescription,
-                onValueChange = { productDescription = it },
+                value = selectedCategoryName, // Menampilkan nama kategori yang dipilih
+                onValueChange = {},
+                readOnly = true,
+                trailingIcon = { ExposedDropdownMenuDefaults.TrailingIcon(expanded = categoryExpanded) },
                 modifier = Modifier
                     .fillMaxWidth()
-                    .height(100.dp),
-                placeholder = { Text("Masukkan deskripsi produk") },
+                    .menuAnchor(MenuAnchorType.PrimaryNotEditable), // Material3 API
                 shape = RoundedCornerShape(12.dp),
                 colors = OutlinedTextFieldDefaults.colors(
                     focusedBorderColor = Color(0xFF3B82F6),
                     unfocusedBorderColor = Color(0xFFE2E8F0),
                 )
             )
-            Spacer(modifier = Modifier.height(16.dp))
-
-            // Price
-            Text(
-                text = "Harga",
-                fontSize = 14.sp,
-                fontWeight = FontWeight.SemiBold,
-                color = Color(0xFF475569),
-                modifier = Modifier.padding(bottom = 8.dp)
-            )
-            OutlinedTextField(
-                value = productPrice,
-                onValueChange = { if (it.all { char -> char.isDigit() }) productPrice = it },
-                modifier = Modifier.fillMaxWidth(),
-                placeholder = { Text("Masukkan harga produk") },
-                shape = RoundedCornerShape(12.dp),
-                colors = OutlinedTextFieldDefaults.colors(
-                    focusedBorderColor = Color(0xFF3B82F6),
-                    unfocusedBorderColor = Color(0xFFE2E8F0),
-                )
-            )
-            Spacer(modifier = Modifier.height(16.dp))
-
-            // Category Dropdown
-            Text(
-                text = "Kategori",
-                fontSize = 14.sp,
-                fontWeight = FontWeight.SemiBold,
-                color = Color(0xFF475569),
-                modifier = Modifier.padding(bottom = 8.dp)
-            )
-            ExposedDropdownMenuBox(
+            ExposedDropdownMenu(
                 expanded = categoryExpanded,
-                onExpandedChange = { categoryExpanded = !categoryExpanded }
+                onDismissRequest = { categoryExpanded = false }
             ) {
-                OutlinedTextField(
-                    value = selectedCategoryName,
-                    onValueChange = {},
-                    readOnly = true,
-                    trailingIcon = { ExposedDropdownMenuDefaults.TrailingIcon(expanded = categoryExpanded) },
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .menuAnchor(MenuAnchorType.PrimaryNotEditable), // Update API Material3 terbaru
-                    shape = RoundedCornerShape(12.dp),
-                    colors = OutlinedTextFieldDefaults.colors(
-                        focusedBorderColor = Color(0xFF3B82F6),
-                        unfocusedBorderColor = Color(0xFFE2E8F0),
+                categories.forEach { category ->
+                    DropdownMenuItem(
+                        text = { Text(category.name) },
+                        onClick = {
+                            // Update ID dan Nama saat user memilih kategori baru
+                            selectedCategoryId = category.id
+                            selectedCategoryName = category.name
+                            categoryExpanded = false
+                        }
                     )
-                )
-                ExposedDropdownMenu(
-                    expanded = categoryExpanded,
-                    onDismissRequest = { categoryExpanded = false }
-                ) {
-                    categories.forEach { category ->
-                        DropdownMenuItem(
-                            text = { Text(category.name) },
-                            onClick = {
-                                selectedCategoryId = category.id
-                                selectedCategoryName = category.name
-                                categoryExpanded = false
-                            }
-                        )
-                    }
                 }
             }
-            Spacer(modifier = Modifier.height(16.dp))
+        }
+        Spacer(modifier = Modifier.height(16.dp))
 
-            // Image Upload
-            Text(
-                text = "Foto Produk",
-                fontSize = 14.sp,
-                fontWeight = FontWeight.SemiBold,
-                color = Color(0xFF475569),
-                modifier = Modifier.padding(bottom = 8.dp)
-            )
+        // Input: Gambar
+        Text("Foto Produk", fontSize = 14.sp, fontWeight = FontWeight.SemiBold, color = Color(0xFF475569), modifier = Modifier.padding(bottom = 8.dp))
+        Box(
+            modifier = Modifier
+                .fillMaxWidth()
+                .height(180.dp)
+                .clip(RoundedCornerShape(12.dp))
+                .background(Color(0xFFF1F5F9))
+                .clickable { imagePicker.launch("image/*") },
+            contentAlignment = Alignment.Center
+        ) {
+            if (selectedImageUri != null) {
+                // Gambar baru dipilih dari galeri
+                AsyncImage(
+                    model = selectedImageUri,
+                    contentDescription = null,
+                    modifier = Modifier.fillMaxSize(),
+                    contentScale = ContentScale.Crop
+                )
+            } else if (selectedProduct?.imageUrl?.isNotEmpty() == true) {
+                // Gambar lama dari server (jika tidak diganti)
+                AsyncImage(
+                    model = selectedProduct?.imageUrl,
+                    contentDescription = null,
+                    modifier = Modifier.fillMaxSize(),
+                    contentScale = ContentScale.Crop
+                )
+            } else {
+                // Placeholder kamera
+                Column(horizontalAlignment = Alignment.CenterHorizontally) {
+                    Icon(Icons.Default.PhotoCamera, null, tint = Color(0xFF94A3B8), modifier = Modifier.size(48.dp))
+                    Spacer(modifier = Modifier.height(8.dp))
+                    Text("Klik untuk ubah foto", fontSize = 14.sp, color = Color(0xFF64748B))
+                }
+            }
+        }
+
+        Spacer(modifier = Modifier.height(24.dp))
+
+        // Error Message
+        if (errorMessage != null) {
+            Card(
+                modifier = Modifier.fillMaxWidth(),
+                colors = CardDefaults.cardColors(containerColor = Color(0xFFFEE2E2)),
+                shape = RoundedCornerShape(12.dp)
+            ) {
+                Text(
+                    text = errorMessage ?: "Terjadi kesalahan",
+                    color = Color(0xFFDC2626),
+                    fontSize = 14.sp,
+                    modifier = Modifier.padding(12.dp)
+                )
+            }
+            Spacer(modifier = Modifier.height(16.dp))
+        }
+
+        // --- TOMBOL UPDATE ---
+        Button(
+            onClick = {
+                val priceValue = productPrice.toIntOrNull() ?: 0
+                selectedCategoryId?.let { catId ->
+                    android.util.Log.d("UpdateView", "Sending Update: ID=$productId, Cat=$catId, Toko=$currentTokoIds")
+
+                    productViewModel.updateProduct(
+                        token = token,
+                        productId = productId,
+                        name = productName,
+                        description = productDescription,
+                        price = priceValue,
+                        categoryId = catId,
+
+                        // 🔥 PENTING: Kirim kembali ID Toko yang sudah disimpan
+                        tokoIds = currentTokoIds,
+
+                        imageFile = imageFile
+                    )
+                }
+            },
+            enabled = !isLoading && productName.isNotBlank() && productDescription.isNotBlank() && productPrice.isNotBlank() && selectedCategoryId != null,
+            modifier = Modifier.fillMaxWidth().height(56.dp),
+            shape = RoundedCornerShape(12.dp),
+            colors = ButtonDefaults.buttonColors(containerColor = Color.Transparent, disabledContainerColor = Color(0xFFE2E8F0)),
+            contentPadding = PaddingValues(0.dp)
+        ) {
             Box(
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .height(180.dp)
-                    .clip(RoundedCornerShape(12.dp))
-                    .background(Color(0xFFF1F5F9))
-                    .clickable { imagePicker.launch("image/*") },
+                modifier = Modifier.fillMaxSize().background(
+                    if (!isLoading && productName.isNotBlank()) Brush.horizontalGradient(listOf(Color(0xFF3B82F6), Color(0xFF2563EB)))
+                    else Brush.horizontalGradient(listOf(Color(0xFFE2E8F0), Color(0xFFE2E8F0)))
+                ),
                 contentAlignment = Alignment.Center
             ) {
-                if (selectedImageUri != null) {
-                    AsyncImage(
-                        model = selectedImageUri,
-                        contentDescription = null,
-                        modifier = Modifier.fillMaxSize(),
-                        contentScale = ContentScale.Crop
-                    )
-                } else if (selectedProduct?.imageUrl?.isNotEmpty() == true) {
-                    AsyncImage(
-                        model = selectedProduct?.imageUrl,
-                        contentDescription = null,
-                        modifier = Modifier.fillMaxSize(),
-                        contentScale = ContentScale.Crop
-                    )
+                if (isLoading) {
+                    CircularProgressIndicator(color = Color.White, modifier = Modifier.size(24.dp))
                 } else {
-                    Column(horizontalAlignment = Alignment.CenterHorizontally) {
-                        Icon(
-                            imageVector = Icons.Default.PhotoCamera,
-                            contentDescription = null,
-                            tint = Color(0xFF94A3B8),
-                            modifier = Modifier.size(48.dp)
-                        )
-                        Spacer(modifier = Modifier.height(8.dp))
-                        Text(
-                            text = "Klik untuk ubah foto",
-                            fontSize = 14.sp,
-                            color = Color(0xFF64748B)
-                        )
-                    }
-                }
-            }
-
-            Spacer(modifier = Modifier.height(24.dp))
-
-            // 👇 UPDATE: Tampilkan Error Card
-            if (errorMessage != null) {
-                Card(
-                    modifier = Modifier.fillMaxWidth(),
-                    colors = CardDefaults.cardColors(containerColor = Color(0xFFFEE2E2)),
-                    shape = RoundedCornerShape(12.dp)
-                ) {
-                    Text(
-                        text = errorMessage ?: "Terjadi kesalahan",
-                        color = Color(0xFFDC2626),
-                        fontSize = 14.sp,
-                        modifier = Modifier.padding(12.dp)
-                    )
-                }
-                Spacer(modifier = Modifier.height(16.dp))
-            }
-
-            // Update Button
-            Button(
-                onClick = {
-                    val priceValue = productPrice.toIntOrNull() ?: 0
-                    selectedCategoryId?.let { catId ->
-                        android.util.Log.d("UpdateProductView", "Updating product: id=$productId")
-
-                        productViewModel.updateProduct(
-                            token = token,
-                            productId = productId,
-                            name = productName,
-                            description = productDescription,
-                            price = priceValue,
-                            categoryId = catId,
-                            tokoIds = "",
-                            imageFile = imageFile // Kirim file jika ada
-                        )
-                    }
-                },
-                enabled = !isLoading && productName.isNotBlank() && productDescription.isNotBlank() && productPrice.isNotBlank() && selectedCategoryId != null,
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .height(56.dp),
-                shape = RoundedCornerShape(12.dp),
-                colors = ButtonDefaults.buttonColors(
-                    containerColor = Color.Transparent,
-                    disabledContainerColor = Color(0xFFE2E8F0)
-                ),
-                contentPadding = PaddingValues(0.dp)
-            ) {
-                Box(
-                    modifier = Modifier
-                        .fillMaxSize()
-                        .background(
-                            brush = if (!isLoading && productName.isNotBlank()) {
-                                Brush.horizontalGradient(
-                                    colors = listOf(Color(0xFF3B82F6), Color(0xFF2563EB))
-                                )
-                            } else {
-                                Brush.horizontalGradient(
-                                    colors = listOf(Color(0xFFE2E8F0), Color(0xFFE2E8F0))
-                                )
-                            }
-                        ),
-                    contentAlignment = Alignment.Center
-                ) {
-                    if (isLoading) {
-                        CircularProgressIndicator(
-                            color = Color.White,
-                            modifier = Modifier.size(24.dp)
-                        )
-                    } else {
-                        Text(
-                            text = "Simpan Perubahan",
-                            fontSize = 16.sp,
-                            fontWeight = FontWeight.Bold,
-                            color = if (productName.isNotBlank()) Color.White else Color(0xFF94A3B8)
-                        )
-                    }
+                    Text("Simpan Perubahan", fontSize = 16.sp, fontWeight = FontWeight.Bold, color = if (productName.isNotBlank()) Color.White else Color(0xFF94A3B8))
                 }
             }
         }
     }
+}
