@@ -10,6 +10,7 @@ import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.combine
 import kotlinx.coroutines.launch
+import retrofit2.HttpException
 import java.io.IOException
 import java.net.SocketTimeoutException
 import java.net.UnknownHostException
@@ -18,6 +19,11 @@ class AuthViewModel : ViewModel() {
 
     // 1. Ambil Repository API & DataStore
     private val authRepository = AppContainer.authRepository
+
+    // Kita butuh TokoRepository (atau repository lain yang butuh token)
+    // Fungsinya hanya untuk "Ping" ke server guna mengetes validitas token
+    private val tokoRepository = AppContainer.tokoRepository
+
     private val userPreferences = AppContainer.userPreferencesRepository
 
     // State untuk data User (Token, Role, dll)
@@ -29,36 +35,58 @@ class AuthViewModel : ViewModel() {
     val isLoading: StateFlow<Boolean> = _isLoading.asStateFlow()
 
     // 🔥 INIT: Jalan otomatis saat aplikasi dibuka
-    // Fungsinya: Mengecek apakah ada data user yang tersimpan di HP
+    // Fungsinya: Mengecek apakah ada data user yang tersimpan di HP (Lokal)
     init {
         checkSession()
     }
 
     private fun checkSession() {
         viewModelScope.launch {
-            // Menggabungkan data Token, Email, dan Role dari DataStore secara real-time
             combine(
                 userPreferences.userToken,
                 userPreferences.userEmail,
                 userPreferences.userRole
             ) { token, email, role ->
                 if (!token.isNullOrEmpty()) {
-                    // Jika token ada, berarti User sedang login
                     User(
                         token = token,
                         email = email ?: "",
-                        role = role ?: "user",
-                        // Pastikan model User kamu punya field ini atau logika sejenis
-                        // Jika model User kamu belum punya field 'isAuthenticated',
-                        // logika di MainActivity cukup cek token.isNotEmpty()
+                        role = role ?: "user"
                     )
                 } else {
-                    // Jika token kosong, return User kosong (Belum Login)
                     User()
                 }
             }.collect { savedUser ->
-                // Update state aplikasi sesuai data di DataStore
                 _userState.value = savedUser
+            }
+        }
+    }
+
+    // --- FUNGSI BARU: VALIDASI TOKEN KE SERVER ---
+    // Dipanggil di MainActivity sebelum masuk ke Home
+    fun validateToken(token: String, onSuccess: () -> Unit, onError: () -> Unit) {
+        viewModelScope.launch {
+            try {
+                // Kita coba panggil API ringan yang butuh token (misal: Get My Tokos)
+                // Kalau token BASI, ini akan melempar error 401
+                tokoRepository.getMyTokos(token)
+
+                // Kalau sampai sini, berarti Token Valid
+                onSuccess()
+            } catch (e: HttpException) {
+                if (e.code() == 401) {
+                    // Token Ditolak Server (Expired/Unauthorized)
+                    Log.e("AuthViewModel", "Token Expired (401). Auto Logout.")
+                    logout() // Hapus sesi lokal
+                    onError() // Suruh UI balik ke Login
+                } else {
+                    // Error lain (misal Server Error 500), tapi Token mungkin masih oke.
+                    // Tetap izinkan masuk (Offline mode / Server trouble)
+                    onSuccess()
+                }
+            } catch (e: Exception) {
+                // Error koneksi internet biasa, izinkan masuk (bisa handle error di view nanti)
+                onSuccess()
             }
         }
     }
@@ -67,51 +95,29 @@ class AuthViewModel : ViewModel() {
     fun login(username: String, pass: String) {
         viewModelScope.launch {
             _isLoading.value = true
-            resetError() // Hapus error lama sebelum mencoba login baru
+            resetError()
 
             try {
                 Log.d("AuthViewModel", "Attempting login for: $username")
-
-                // 1. Panggil API Login
                 val result = authRepository.loginUser(username, pass)
 
-                // 2. Jika Sukses, SIMPAN KE DATASTORE (HP)
-                // Pastikan result.token, result.email, dll tidak null
                 userPreferences.saveUser(
                     token = result.token,
                     email = result.email,
                     role = result.role,
-                    id = result.id.toString() // Sesuaikan jika ID di model kamu Int/String
+                    id = result.id.toString()
                 )
 
-                // Update UI State manual (supaya responsif)
                 _userState.value = result
                 Log.d("AuthViewModel", "Login successful & Saved to DataStore")
 
             } catch (e: SocketTimeoutException) {
-                Log.e("AuthViewModel", "Login timeout", e)
-                _userState.value = _userState.value.copy(
-                    isError = true,
-                    errorMessage = "Koneksi timeout. Periksa koneksi internet Anda."
-                )
+                handleError("Koneksi timeout. Periksa koneksi internet Anda.")
             } catch (e: UnknownHostException) {
-                Log.e("AuthViewModel", "Unknown host", e)
-                _userState.value = _userState.value.copy(
-                    isError = true,
-                    errorMessage = "Tidak dapat terhubung ke server. Periksa koneksi internet."
-                )
-            } catch (e: IOException) {
-                Log.e("AuthViewModel", "IO error", e)
-                _userState.value = _userState.value.copy(
-                    isError = true,
-                    errorMessage = "Masalah jaringan atau server tidak dapat dijangkau."
-                )
+                handleError("Tidak dapat terhubung ke server. Periksa koneksi internet.")
             } catch (e: Exception) {
                 Log.e("AuthViewModel", "Login error", e)
-                _userState.value = _userState.value.copy(
-                    isError = true,
-                    errorMessage = e.message ?: "Login gagal. Cek username/password."
-                )
+                handleError(e.message ?: "Login gagal. Cek username/password.")
             } finally {
                 _isLoading.value = false
             }
@@ -128,7 +134,6 @@ class AuthViewModel : ViewModel() {
                 Log.d("AuthViewModel", "Attempting registration for: $username")
                 val result = authRepository.registerUser(username, email, pass)
 
-                // Opsional: Jika register langsung mengembalikan Token, simpan juga ke DataStore
                 if (result.token.isNotEmpty()) {
                     userPreferences.saveUser(
                         token = result.token,
@@ -137,43 +142,33 @@ class AuthViewModel : ViewModel() {
                         id = result.id.toString()
                     )
                 }
-
                 _userState.value = result
-                Log.d("AuthViewModel", "Registration successful")
-
-            } catch (e: SocketTimeoutException) {
-                Log.e("AuthViewModel", "Registration timeout", e)
-                _userState.value = _userState.value.copy(
-                    isError = true,
-                    errorMessage = "Koneksi timeout. Coba lagi nanti."
-                )
             } catch (e: Exception) {
                 Log.e("AuthViewModel", "Registration error", e)
-                _userState.value = _userState.value.copy(
-                    isError = true,
-                    errorMessage = e.message ?: "Registrasi gagal."
-                )
+                handleError(e.message ?: "Registrasi gagal.")
             } finally {
                 _isLoading.value = false
             }
         }
     }
 
-    // 🔥 Fungsi Logout (Penting untuk menghapus sesi)
+    // 🔥 Fungsi Logout
     fun logout() {
         viewModelScope.launch {
             try {
-                userPreferences.clearUser() // Hapus data dari HP
-                _userState.value = User()   // Reset state UI ke kosong
+                userPreferences.clearUser()
+                _userState.value = User()
             } catch (e: Exception) {
                 Log.e("AuthViewModel", "Logout error", e)
             }
         }
     }
 
-    // Reset status error
     fun resetError() {
-        // Kita pakai copy supaya data user lain (email/token) tidak hilang, cuma reset errornya
         _userState.value = _userState.value.copy(isError = false, errorMessage = null)
+    }
+
+    private fun handleError(msg: String) {
+        _userState.value = _userState.value.copy(isError = true, errorMessage = msg)
     }
 }
