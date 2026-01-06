@@ -11,88 +11,76 @@ import androidx.compose.material.icons.automirrored.outlined.Logout
 import androidx.compose.material.icons.outlined.Language
 import androidx.compose.material.icons.outlined.Payments
 import androidx.compose.material.icons.outlined.Shield
-import androidx.compose.material.icons.outlined.Lock
-import androidx.compose.material.icons.outlined.AdminPanelSettings
-import androidx.compose.ui.window.Dialog
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
-import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import androidx.compose.ui.window.Dialog
 import androidx.navigation.NavController
-import androidx.lifecycle.viewmodel.compose.viewModel
-import com.jeruk.alp_frontend.data.container.AppContainer
 import com.jeruk.alp_frontend.ui.route.AppView
-import com.jeruk.alp_frontend.ui.viewmodel.UserViewModel
-import kotlinx.coroutines.launch
 
 @Composable
 fun SettingView(
     navController: NavController,
-    onLogout: () -> Unit,
-    userViewModel: UserViewModel = viewModel(),
-    token: String = ""
+    onLogout: () -> Unit
 ) {
-    // Get preferences repository
-    val userPreferences = AppContainer.userPreferencesRepository
-    val scope = rememberCoroutineScope()
-    
-    // Collect currency from DataStore
-    val selectedCurrency by userPreferences.selectedCurrency.collectAsState(initial = "IDR")
+    // State untuk Toggles (Lokal)
+    var selectedLanguage by remember { mutableStateOf("Indonesia") }
+    var selectedCurrency by remember { mutableStateOf("IDR") }
 
     // State untuk Popups
     var showAdminDialog by remember { mutableStateOf(false) }
     var showLogoutConfirm by remember { mutableStateOf(false) }
-    
-    // Check if admin password is set
-    val hasAdminPassword by userPreferences.hasAdminPassword.collectAsState(initial = false)
-    val adminPasswordState by userViewModel.adminPasswordState.collectAsState()
 
     Column(
         modifier = Modifier
             .fillMaxSize()
-            .background(Color(0xFFF9FAFB)) // Background konsisten dengan TokoView
+            .background(Color(0xFFF9FAFB))
     ) {
-
         Column(
             modifier = Modifier
                 .padding(16.dp)
                 .verticalScroll(rememberScrollState()),
             verticalArrangement = Arrangement.spacedBy(16.dp)
         ) {
+            // --- KARTU BAHASA ---
+            SettingCard(
+                title = "Bahasa",
+                sub = "Pilih bahasa untuk aplikasi",
+                icon = Icons.Outlined.Language,
+                iconBg = Color(0xFFE8EAF6),
+                iconTint = Color(0xFF3F51B5)
+            ) {
+                LanguageOption(
+                    "Bahasa Indonesia",
+                    selectedLanguage == "Indonesia"
+                ) { selectedLanguage = "Indonesia" }
+                LanguageOption("English", selectedLanguage == "English") {
+                    selectedLanguage = "English"
+                }
+            }
+
             // --- KARTU MATA UANG ---
             SettingCard(
                 title = "Mata Uang",
-                sub = "Pilih mata uang untuk transaksi",
+                sub = "Pilih mata uang transaksi",
                 icon = Icons.Outlined.Payments,
                 iconBg = Color(0xFFFCE4EC),
                 iconTint = Color(0xFFE91E63)
             ) {
-                Row(
-                    modifier = Modifier.fillMaxWidth(),
-                    horizontalArrangement = Arrangement.SpaceEvenly
-                ) {
-                    CurrencySymbol("Rp", selectedCurrency == "IDR") { 
-                        scope.launch { userPreferences.setCurrency("IDR") }
-                    }
-                    CurrencySymbol("$", selectedCurrency == "USD") { 
-                        scope.launch { userPreferences.setCurrency("USD") }
-                    }
-                    CurrencySymbol("€", selectedCurrency == "EUR") { 
-                        scope.launch { userPreferences.setCurrency("EUR") }
-                    }
-                    CurrencySymbol("¥", selectedCurrency == "JPY") { 
-                        scope.launch { userPreferences.setCurrency("JPY") }
-                    }
-                    CurrencySymbol("£", selectedCurrency == "GBP") { 
-                        scope.launch { userPreferences.setCurrency("GBP") }
-                    }
+                CurrencyOption(
+                    "Indonesian Rupiah",
+                    "Rp",
+                    selectedCurrency == "IDR"
+                ) { selectedCurrency = "IDR" }
+                CurrencyOption("US Dollar", "$", selectedCurrency == "USD") {
+                    selectedCurrency = "USD"
                 }
             }
 
@@ -121,42 +109,10 @@ fun SettingView(
     }
 
     // --- DIALOGS ---
-    // Di dalam SettingView.kt
     if (showAdminDialog) {
-        Dialog(onDismissRequest = { 
-            if (!adminPasswordState.isLoading) {
-                showAdminDialog = false
-                userViewModel.resetAdminPasswordState()
-            }
-        }) {
+        Dialog(onDismissRequest = { showAdminDialog = false }) {
             AdminFormView(
-                hasAdminPassword = hasAdminPassword,
-                isLoading = adminPasswordState.isLoading,
-                errorMessage = if (adminPasswordState.isError) adminPasswordState.message else null,
-                onDismiss = { 
-                    showAdminDialog = false
-                    userViewModel.resetAdminPasswordState()
-                },
-                onSetPassword = { password ->
-                    // First time: Set the admin password
-                    android.util.Log.d("SettingView", "Setting admin password, token: ${token.take(20)}...")
-                    userViewModel.updateAdminPassword(token, password)
-                },
-                onVerifyPassword = { password, onError ->
-                    // Verify existing password
-                    android.util.Log.d("SettingView", "Verifying admin password, token: ${token.take(20)}...")
-                    userViewModel.verifyAdminPassword(
-                        token = token,
-                        password = password,
-                        onSuccess = {
-                            showAdminDialog = false
-                            navController.navigate(AppView.Analysis.name) {
-                                popUpTo(AppView.Setting.name) { inclusive = true }
-                            }
-                        },
-                        onError = onError
-                    )
-                },
+                onDismiss = { showAdminDialog = false },
                 onAdminAuthenticated = {
                     showAdminDialog = false
                     navController.navigate(AppView.Analysis.name) {
@@ -164,22 +120,6 @@ fun SettingView(
                     }
                 }
             )
-        }
-    }
-    
-    // Handle password set success
-    LaunchedEffect(adminPasswordState.isSuccess) {
-        if (adminPasswordState.isSuccess) {
-            // Save the flag that admin password is set
-            scope.launch {
-                userPreferences.setAdminPasswordStatus(true)
-                userViewModel.resetAdminPasswordState()
-                showAdminDialog = false
-                // Navigate to admin mode
-                navController.navigate(AppView.Analysis.name) {
-                    popUpTo(AppView.Setting.name) { inclusive = true }
-                }
-            }
         }
     }
 
@@ -203,7 +143,7 @@ fun SettingView(
     }
 }
 
-// --- KOMPONEN PENDUKUNG (HIG STYLE) ---
+// --- KOMPONEN PENDUKUNG ---
 
 @Composable
 fun SettingCard(
@@ -281,28 +221,44 @@ fun ActionItem(
 }
 
 @Composable
-fun CurrencySymbol(symbol: String, selected: Boolean, onClick: () -> Unit) {
-    Box(
+fun LanguageOption(label: String, selected: Boolean, onClick: () -> Unit) {
+    Row(
         modifier = Modifier
-            .size(64.dp)
-            .clip(RoundedCornerShape(16.dp))
-            .then(
-                if (selected) {
-                    Modifier.background(
-                        brush = Brush.horizontalGradient(listOf(Color(0xFF60A5FA), Color(0xFFA855F7)))
-                    )
-                } else {
-                    Modifier.background(color = Color(0xFFF3F4F6))
-                }
-            )
-            .clickable { onClick() },
-        contentAlignment = Alignment.Center
+            .fillMaxWidth()
+            .clip(RoundedCornerShape(12.dp))
+            .background(if (selected) Color(0xFFF9FAFB) else Color.Transparent)
+            .clickable { onClick() }
+            .padding(8.dp),
+        verticalAlignment = Alignment.CenterVertically
     ) {
-        Text(
-            text = symbol,
-            fontSize = 24.sp,
-            fontWeight = FontWeight.Bold,
-            color = if (selected) Color.White else Color(0xFF6B7280)
+        RadioButton(
+            selected = selected,
+            onClick = onClick,
+            colors = RadioButtonDefaults.colors(selectedColor = Color(0xFF9333EA))
         )
+        Text(label, fontSize = 14.sp, modifier = Modifier.padding(start = 8.dp))
+    }
+}
+
+@Composable
+fun CurrencyOption(label: String, symbol: String, selected: Boolean, onClick: () -> Unit) {
+    Row(
+        modifier = Modifier
+            .fillMaxWidth()
+            .clip(RoundedCornerShape(12.dp))
+            .background(if (selected) Color(0xFFF9FAFB) else Color.Transparent)
+            .clickable { onClick() }
+            .padding(8.dp),
+        verticalAlignment = Alignment.CenterVertically
+    ) {
+        RadioButton(
+            selected = selected,
+            onClick = onClick,
+            colors = RadioButtonDefaults.colors(selectedColor = Color(0xFF9333EA))
+        )
+        Text(label, fontSize = 14.sp, modifier = Modifier
+            .padding(start = 8.dp)
+            .weight(1f))
+        Text(symbol, fontWeight = FontWeight.Bold, color = Color.Gray)
     }
 }
