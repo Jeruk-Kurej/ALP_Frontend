@@ -28,6 +28,7 @@ import androidx.navigation.NavType
 import androidx.navigation.compose.*
 import androidx.navigation.navArgument
 import com.jeruk.alp_frontend.ui.view.Analysis.AnalysisPageView
+import com.jeruk.alp_frontend.ui.view.Analysis.AnalysisDetailView
 import com.jeruk.alp_frontend.ui.view.Auth.LoginView
 import com.jeruk.alp_frontend.ui.view.Auth.RegisterView
 import com.jeruk.alp_frontend.ui.view.Setting.SettingAdminView
@@ -230,6 +231,7 @@ fun AppRoute() {
 
             // --- ADMIN MODE ---
             composable(AppView.Analysis.name) { AnalysisPageView(navController) }
+            composable(AppView.AnalysisDetail.name) { AnalysisDetailView(navController) }
             composable(AppView.AdminToko.name) { TokoAdminView(navController = navController, authViewModel = authViewModel) }
 
             composable(AppView.CreateToko.name) {
