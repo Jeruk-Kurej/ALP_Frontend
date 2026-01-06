@@ -12,11 +12,12 @@ import kotlinx.coroutines.launch
 import java.io.File
 
 class TokoViewModel : ViewModel() {
-    // 1. Repository
-    private val repository = AppContainer.tokoRepository
-    private val productRepository = AppContainer.productRepository
 
-    // 2. States
+    private val repository = AppContainer.tokoRepository
+    // productRepository tidak lagi dibutuhkan untuk updateToko,
+    // tapi mungkin butuh untuk fitur lain, jadi biarkan saja kalau mau.
+
+    // States
     private val _isLoading = MutableStateFlow(false)
     val isLoading: StateFlow<Boolean> = _isLoading.asStateFlow()
 
@@ -32,15 +33,10 @@ class TokoViewModel : ViewModel() {
     private val _currentToko = MutableStateFlow<Toko?>(null)
     val currentToko: StateFlow<Toko?> = _currentToko.asStateFlow()
 
-    // -------------------------------------------------------
-    // 1. GET MY TOKOS (Perbaikan Nama Fungsi)
-    // -------------------------------------------------------
-    // Nama fungsi disamakan dengan yang dipanggil di TokoAdminView
     fun getMyTokos(token: String) {
         viewModelScope.launch {
             _isLoading.value = true
             try {
-                // Memanggil fungsi di Repository
                 val result = repository.getMyTokos(token)
                 _tokos.value = result
             } catch (e: Exception) {
@@ -51,32 +47,6 @@ class TokoViewModel : ViewModel() {
             }
         }
     }
-
-    // -------------------------------------------------------
-    // 2. DELETE TOKO (Penambahan Fungsi Baru)
-    // -------------------------------------------------------
-    fun deleteToko(token: String, tokoId: Int) {
-        viewModelScope.launch {
-            _isLoading.value = true
-            _errorMessage.value = null
-            try {
-                repository.deleteToko(token, tokoId)
-
-                // Setelah delete sukses, refresh list toko
-                getMyTokos(token)
-
-            } catch (e: Exception) {
-                Log.e("TOKO_VM", "Gagal hapus toko: ${e.message}")
-                _errorMessage.value = "Gagal menghapus toko: ${e.message}"
-            } finally {
-                _isLoading.value = false
-            }
-        }
-    }
-
-    // -------------------------------------------------------
-    // FUNGSI LAINNYA (TETAP SAMA)
-    // -------------------------------------------------------
 
     fun getTokoById(token: String, id: Int) {
         viewModelScope.launch {
@@ -99,7 +69,6 @@ class TokoViewModel : ViewModel() {
             try {
                 repository.createToko(token, name, description, location, imageFile)
                 _isSuccess.value = true
-                // Refresh list setelah create (opsional, kalau user langsung balik ke list)
                 getMyTokos(token)
             } catch (e: Exception) {
                 _errorMessage.value = e.message
@@ -109,38 +78,51 @@ class TokoViewModel : ViewModel() {
         }
     }
 
-    fun updateToko(token: String, id: Int, name: String, desc: String, loc: String, file: File?, selectedProductIds: List<Int>) {
+    // 👇 LOGIC UPDATE YANG JAUH LEBIH BERSIH
+    fun updateToko(
+        token: String,
+        id: Int,
+        name: String,
+        desc: String,
+        loc: String,
+        file: File?,
+        selectedProductIds: List<Int> // List ID dari UI
+    ) {
         viewModelScope.launch {
             _isLoading.value = true
             _errorMessage.value = null
             _isSuccess.value = false
             try {
-                // Update Detail Toko
-                repository.updateToko(token, id, name, desc, loc, file)
-
-                // Update Relasi Produk
-                val allProducts = productRepository.getAllProducts(token)
-                val currentTokoName = _currentToko.value?.name ?: name
-
-                allProducts.forEach { product ->
-                    val shouldBeInToko = selectedProductIds.contains(product.id)
-                    val isCurrentlyInToko = product.tokos.contains(currentTokoName)
-
-                    if (shouldBeInToko && !isCurrentlyInToko) {
-                        try { productRepository.updateProductTokoRelation(token, product.id, id, true) }
-                        catch (e: Exception) { Log.e("TOKO_VM", "Fail Add: ${e.message}") }
-                    } else if (!shouldBeInToko && isCurrentlyInToko) {
-                        try { productRepository.updateProductTokoRelation(token, product.id, id, false) }
-                        catch (e: Exception) { Log.e("TOKO_VM", "Fail Remove: ${e.message}") }
-                    }
-                }
+                // Kita panggil Repo updateToko yang baru
+                // Repo akan kirim data + List productIds ke Backend sekaligus
+                repository.updateToko(token, id, name, desc, loc, file, selectedProductIds)
 
                 _isSuccess.value = true
-                // Refresh list
+
+                // Refresh data
                 getMyTokos(token)
+                getTokoById(token, id)
+
             } catch (e: Exception) {
+                Log.e("TOKO_VM", "Gagal update: ${e.message}")
                 _errorMessage.value = e.message
                 _isSuccess.value = false
+            } finally {
+                _isLoading.value = false
+            }
+        }
+    }
+
+    fun deleteToko(token: String, tokoId: Int) {
+        viewModelScope.launch {
+            _isLoading.value = true
+            _errorMessage.value = null
+            try {
+                repository.deleteToko(token, tokoId)
+                getMyTokos(token)
+            } catch (e: Exception) {
+                Log.e("TOKO_VM", "Gagal hapus toko: ${e.message}")
+                _errorMessage.value = "Gagal menghapus toko: ${e.message}"
             } finally {
                 _isLoading.value = false
             }

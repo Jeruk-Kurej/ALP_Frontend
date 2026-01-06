@@ -8,8 +8,11 @@ import retrofit2.Response
 import retrofit2.http.*
 
 interface TokoService {
+
     @GET("tokos/my/stores")
-    suspend fun getAllMyTokos(@Header("Authorization") token: String): Response<GetAllTokoResponse>
+    suspend fun getAllMyTokos(
+        @Header("Authorization") token: String
+    ): Response<GetAllTokoResponse>
 
     @GET("tokos/{tokoId}")
     suspend fun getTokoById(
@@ -32,9 +35,17 @@ interface TokoService {
     suspend fun updateToko(
         @Header("Authorization") token: String,
         @Path("tokoId") tokoId: Int,
+
         @Part("name") name: RequestBody,
         @Part("description") description: RequestBody,
+
+        // Disamakan dengan createToko jadi "location".
+        // Kalau backend mintanya "address", ubah string ini jadi "address"
         @Part("location") location: RequestBody,
+
+        // ✅ INI YANG BENAR: Menerima List Multipart untuk Product IDs
+        @Part productIds: List<MultipartBody.Part>,
+
         @Part image: MultipartBody.Part?
     ): Response<GetTokoById>
 
