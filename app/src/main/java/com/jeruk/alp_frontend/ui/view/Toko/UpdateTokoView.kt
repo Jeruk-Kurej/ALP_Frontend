@@ -29,6 +29,8 @@ import com.jeruk.alp_frontend.ui.viewmodel.TokoViewModel
 import java.io.File
 import java.text.NumberFormat
 import java.util.Locale
+import com.jeruk.alp_frontend.utils.CurrencyFormatter
+import com.jeruk.alp_frontend.data.container.AppContainer
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -301,9 +303,8 @@ fun UpdateTokoView(
 }
 
 // Helper Format Rupiah (Bisa ditaruh di utils kalau mau rapi)
+@Composable
 fun formatRupiah(number: Int): String {
-    val localeID = Locale("in", "ID")
-    val formatRupiah = NumberFormat.getCurrencyInstance(localeID)
-    formatRupiah.maximumFractionDigits = 0
-    return formatRupiah.format(number).replace("Rp", "Rp ")
+    val selectedCurrency by AppContainer.userPreferencesRepository.selectedCurrency.collectAsState(initial = "IDR")
+    return CurrencyFormatter.formatPrice(number, selectedCurrency)
 }
