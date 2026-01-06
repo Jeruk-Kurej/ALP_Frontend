@@ -492,6 +492,6 @@ fun DaySummaryCard(
             Text(title, fontSize = 12.sp, color = Color(0xFF6B7280))
             Text(value, fontWeight = FontWeight.Bold, fontSize = 16.sp)
         }
-        
+
     }
 }
