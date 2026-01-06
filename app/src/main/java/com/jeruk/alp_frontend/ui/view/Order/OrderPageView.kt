@@ -26,6 +26,7 @@ import androidx.lifecycle.viewmodel.compose.viewModel
 import androidx.navigation.NavController
 import coil.compose.AsyncImage
 import com.jeruk.alp_frontend.ui.model.Product
+import com.jeruk.alp_frontend.ui.route.AppView
 import com.jeruk.alp_frontend.ui.viewmodel.ProductViewModel
 import java.text.NumberFormat
 import java.util.Locale
@@ -80,7 +81,12 @@ fun OrderPageView(
                     CartItemCard(
                         product = product,
                         quantity = qty,
-                        onQuantityChange = { newQty -> productViewModel.updateCart(product, newQty) },
+                        onQuantityChange = { newQty ->
+                            productViewModel.updateCart(
+                                product,
+                                newQty
+                            )
+                        },
                         onDelete = { productViewModel.removeFromCart(product) }
                     )
                 }
@@ -91,7 +97,9 @@ fun OrderPageView(
                 subTotal = subTotal,
                 tax = tax,
                 grandTotal = grandTotal,
-                onCheckout = { /* Logika Checkout */ }
+                onCheckout = {
+                    navController.navigate(AppView.PaymentPage.name) // Ganti route ke page baru
+                }
             )
         }
     }
@@ -122,35 +130,100 @@ fun CartItemCard(
                 model = product.imageUrl,
                 contentDescription = product.name,
                 contentScale = ContentScale.Crop,
-                modifier = Modifier.size(80.dp).clip(RoundedCornerShape(12.dp)).background(Color.LightGray)
+                modifier = Modifier
+                    .size(80.dp)
+                    .clip(RoundedCornerShape(12.dp))
+                    .background(Color.LightGray)
             )
             Spacer(modifier = Modifier.width(12.dp))
             Column(modifier = Modifier.weight(1f)) {
-                Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween) {
-                    Text(text = product.name, fontWeight = FontWeight.SemiBold, fontSize = 16.sp, color = Color.Black)
+                Row(
+                    modifier = Modifier.fillMaxWidth(),
+                    horizontalArrangement = Arrangement.SpaceBetween
+                ) {
+                    Text(
+                        text = product.name,
+                        fontWeight = FontWeight.SemiBold,
+                        fontSize = 16.sp,
+                        color = Color.Black
+                    )
                     Text("Subtotal", fontSize = 10.sp, color = Color.Gray)
                 }
                 Spacer(modifier = Modifier.height(4.dp))
-                Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween, verticalAlignment = Alignment.Bottom) {
+                Row(
+                    modifier = Modifier.fillMaxWidth(),
+                    horizontalArrangement = Arrangement.SpaceBetween,
+                    verticalAlignment = Alignment.Bottom
+                ) {
                     Column {
-                        Text(text = formatRupiah(product.price.toDouble()), color = Color(0xFFA855F7), fontWeight = FontWeight.Bold, fontSize = 14.sp)
+                        Text(
+                            text = formatRupiah(product.price.toDouble()),
+                            color = Color(0xFFA855F7),
+                            fontWeight = FontWeight.Bold,
+                            fontSize = 14.sp
+                        )
                         Spacer(modifier = Modifier.height(8.dp))
                         Row(
                             verticalAlignment = Alignment.CenterVertically,
-                            modifier = Modifier.background(Color(0xFFF3F4F6), RoundedCornerShape(8.dp)).padding(horizontal = 4.dp, vertical = 2.dp)
+                            modifier = Modifier
+                                .background(
+                                    Color(0xFFF3F4F6),
+                                    RoundedCornerShape(8.dp)
+                                )
+                                .padding(horizontal = 4.dp, vertical = 2.dp)
                         ) {
-                            IconButton(onClick = { onQuantityChange(quantity - 1) }, modifier = Modifier.size(28.dp)) { Icon(Icons.Default.Remove, null, tint = Color.Gray, modifier = Modifier.size(16.dp)) }
-                            Text(text = quantity.toString(), fontWeight = FontWeight.Bold, modifier = Modifier.padding(horizontal = 8.dp))
-                            IconButton(onClick = { onQuantityChange(quantity + 1) }, modifier = Modifier.size(28.dp)) { Icon(Icons.Default.Add, null, tint = Color.Black, modifier = Modifier.size(16.dp)) }
+                            IconButton(
+                                onClick = { onQuantityChange(quantity - 1) },
+                                modifier = Modifier.size(28.dp)
+                            ) {
+                                Icon(
+                                    Icons.Default.Remove,
+                                    null,
+                                    tint = Color.Gray,
+                                    modifier = Modifier.size(16.dp)
+                                )
+                            }
+                            Text(
+                                text = quantity.toString(),
+                                fontWeight = FontWeight.Bold,
+                                modifier = Modifier.padding(horizontal = 8.dp)
+                            )
+                            IconButton(
+                                onClick = { onQuantityChange(quantity + 1) },
+                                modifier = Modifier.size(28.dp)
+                            ) {
+                                Icon(
+                                    Icons.Default.Add,
+                                    null,
+                                    tint = Color.Black,
+                                    modifier = Modifier.size(16.dp)
+                                )
+                            }
                         }
                     }
                     Column(horizontalAlignment = Alignment.End) {
-                        Text(text = formatRupiah(subTotalItem), fontWeight = FontWeight.Bold, fontSize = 14.sp, color = Color.Black)
+                        Text(
+                            text = formatRupiah(subTotalItem),
+                            fontWeight = FontWeight.Bold,
+                            fontSize = 14.sp,
+                            color = Color.Black
+                        )
                         Spacer(modifier = Modifier.height(8.dp))
                         Box(
-                            modifier = Modifier.size(32.dp).clip(CircleShape).background(Color(0xFFFEF2F2)).clickable { onDelete() },
+                            modifier = Modifier
+                                .size(32.dp)
+                                .clip(CircleShape)
+                                .background(Color(0xFFFEF2F2))
+                                .clickable { onDelete() },
                             contentAlignment = Alignment.Center
-                        ) { Icon(Icons.Default.Delete, "Delete", tint = Color(0xFFEF4444), modifier = Modifier.size(18.dp)) }
+                        ) {
+                            Icon(
+                                Icons.Default.Delete,
+                                "Delete",
+                                tint = Color(0xFFEF4444),
+                                modifier = Modifier.size(18.dp)
+                            )
+                        }
                     }
                 }
             }
@@ -173,17 +246,42 @@ fun OrderSummarySection(subTotal: Double, tax: Double, grandTotal: Double, onChe
             Spacer(modifier = Modifier.height(8.dp))
             SummaryRow(label = "Pajak (10%)", amount = tax)
             Divider(modifier = Modifier.padding(vertical = 12.dp), color = Color(0xFFE5E7EB))
-            Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween) {
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                horizontalArrangement = Arrangement.SpaceBetween
+            ) {
                 Text("Total", fontWeight = FontWeight.Bold, fontSize = 16.sp)
-                Text(formatRupiah(grandTotal), fontWeight = FontWeight.Bold, fontSize = 16.sp, color = Color(0xFFA855F7))
+                Text(
+                    formatRupiah(grandTotal),
+                    fontWeight = FontWeight.Bold,
+                    fontSize = 16.sp,
+                    color = Color(0xFFA855F7)
+                )
             }
             Spacer(modifier = Modifier.height(24.dp))
             Box(
-                modifier = Modifier.fillMaxWidth().height(50.dp).clip(RoundedCornerShape(12.dp))
-                    .background(Brush.horizontalGradient(colors = listOf(Color(0xFF8B5CF6), Color(0xFFC084FC))))
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .height(50.dp)
+                    .clip(RoundedCornerShape(12.dp))
+                    .background(
+                        Brush.horizontalGradient(
+                            colors = listOf(
+                                Color(0xFF8B5CF6),
+                                Color(0xFFC084FC)
+                            )
+                        )
+                    )
                     .clickable { onCheckout() },
                 contentAlignment = Alignment.Center
-            ) { Text("Lanjut ke Pembayaran", color = Color.White, fontWeight = FontWeight.Bold, fontSize = 16.sp) }
+            ) {
+                Text(
+                    "Lanjut ke Pembayaran",
+                    color = Color.White,
+                    fontWeight = FontWeight.Bold,
+                    fontSize = 16.sp
+                )
+            }
         }
     }
 }

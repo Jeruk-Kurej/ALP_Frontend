@@ -38,6 +38,7 @@ import com.jeruk.alp_frontend.ui.view.Product.UpdateProductView
 import com.jeruk.alp_frontend.ui.view.Category.AddCategoryView
 import com.jeruk.alp_frontend.ui.view.Category.UpdateCategoryView
 import com.jeruk.alp_frontend.ui.view.Order.OrderPageView
+import com.jeruk.alp_frontend.ui.view.Order.PaymentPageView
 import com.jeruk.alp_frontend.ui.view.Product.ProductMenuView
 import com.jeruk.alp_frontend.ui.view.Toko.CreateTokoView
 import com.jeruk.alp_frontend.ui.view.Toko.TokoAdminView
@@ -66,7 +67,8 @@ enum class AppView(
     // --- Waiter Mode ---
     Home("Pilih Toko", Icons.Filled.Storefront, Icons.Outlined.Storefront),
     ProductMenu("Menu Toko"),
-    OrderPage("Keranjang Belanja"), // 🔥 Tambahan: Agar TopBar otomatis judul ini
+    OrderPage("Keranjang Belanja"), // 🔥 Tambahan: Agar TopBar otomatis judul
+    PaymentPage("Pembayaran"), // 🔥 Tambahkan ini
 
     // --- Admin Mode ---
     Analysis("Dashboard", Icons.Filled.GridView, Icons.Outlined.GridView),
@@ -129,11 +131,13 @@ fun AppRoute() {
 
     Scaffold(
         topBar = {
-            val noHeaderPages = listOf(AppView.Welcoming.name, AppView.Login.name, AppView.Register.name)
+            val noHeaderPages =
+                listOf(AppView.Welcoming.name, AppView.Login.name, AppView.Register.name)
             val currentBaseRoute = currentRoute?.split("/")?.first()
 
             if (currentBaseRoute !in noHeaderPages && currentRoute != null) {
-                val currentView = AppView.entries.find { it.name == currentBaseRoute } ?: AppView.Welcoming
+                val currentView =
+                    AppView.entries.find { it.name == currentBaseRoute } ?: AppView.Welcoming
 
                 val titleText = if (currentBaseRoute == AppView.ProductMenu.name) {
                     val name = navBackStackEntry?.arguments?.getString("tokoName") ?: ""
@@ -223,32 +227,79 @@ fun AppRoute() {
                 )
             }
 
+            composable(AppView.PaymentPage.name) {
+                PaymentPageView(
+                    navController = navController,
+                    productViewModel = productViewModel
+                )
+            }
+
             // --- ADMIN MODE ---
             composable(AppView.Analysis.name) { AnalysisPageView(navController) }
-            composable(AppView.AdminToko.name) { TokoAdminView(navController = navController, authViewModel = authViewModel) }
+            composable(AppView.AdminToko.name) {
+                TokoAdminView(
+                    navController = navController,
+                    authViewModel = authViewModel
+                )
+            }
 
             composable(AppView.CreateToko.name) {
-                CreateTokoView(token = userState.token, onSuccess = { navController.popBackStack() }, navController = navController)
+                CreateTokoView(
+                    token = userState.token,
+                    onSuccess = { navController.popBackStack() },
+                    navController = navController
+                )
             }
 
             composable("${AppView.UpdateToko.name}/{tokoId}") { backStackEntry ->
                 val tokoId = backStackEntry.arguments?.getString("tokoId")?.toInt() ?: 0
-                UpdateTokoView(token = userState.token, tokoId = tokoId, onSuccess = { navController.popBackStack() }, navController = navController)
+                UpdateTokoView(
+                    token = userState.token,
+                    tokoId = tokoId,
+                    onSuccess = { navController.popBackStack() },
+                    navController = navController
+                )
             }
 
-            composable(AppView.AdminProduk.name) { ProductAdminView(navController, token = userState.token) }
-            composable(AppView.AddProduct.name) { AddProductView(navController = navController, token = userState.token) }
+            composable(AppView.AdminProduk.name) {
+                ProductAdminView(
+                    navController,
+                    token = userState.token
+                )
+            }
+            composable(AppView.AddProduct.name) {
+                AddProductView(
+                    navController = navController,
+                    token = userState.token
+                )
+            }
 
             composable("${AppView.UpdateProduct.name}/{productId}") { backStackEntry ->
                 val productId = backStackEntry.arguments?.getString("productId")?.toIntOrNull() ?: 0
-                UpdateProductView(token = userState.token, productId = productId, onSuccess = { navController.popBackStack() }, navController = navController)
+                UpdateProductView(
+                    token = userState.token,
+                    productId = productId,
+                    onSuccess = { navController.popBackStack() },
+                    navController = navController
+                )
             }
 
-            composable(AppView.AddCategory.name) { AddCategoryView(navController = navController, token = userState.token) }
+            composable(AppView.AddCategory.name) {
+                AddCategoryView(
+                    navController = navController,
+                    token = userState.token
+                )
+            }
 
             composable("${AppView.UpdateCategory.name}/{categoryId}") { backStackEntry ->
-                val categoryId = backStackEntry.arguments?.getString("categoryId")?.toIntOrNull() ?: 0
-                UpdateCategoryView(token = userState.token, categoryId = categoryId, onSuccess = { navController.popBackStack() }, navController = navController)
+                val categoryId =
+                    backStackEntry.arguments?.getString("categoryId")?.toIntOrNull() ?: 0
+                UpdateCategoryView(
+                    token = userState.token,
+                    categoryId = categoryId,
+                    onSuccess = { navController.popBackStack() },
+                    navController = navController
+                )
             }
 
             // --- SETTING ---
@@ -256,11 +307,19 @@ fun AppRoute() {
                 if (isUserInAdminMode) {
                     SettingAdminView(
                         navController = navController,
-                        onLogout = { navController.navigate(AppView.Welcoming.name) { popUpTo(0) { inclusive = true } } },
+                        onLogout = {
+                            navController.navigate(AppView.Welcoming.name) {
+                                popUpTo(0) {
+                                    inclusive = true
+                                }
+                            }
+                        },
                         onExitAdminMode = {
                             isUserInAdminMode = false
                             navController.navigate(AppView.Home.name) {
-                                popUpTo(navController.graph.findStartDestination().id) { saveState = false }
+                                popUpTo(navController.graph.findStartDestination().id) {
+                                    saveState = false
+                                }
                                 launchSingleTop = true
                                 restoreState = true
                             }
@@ -269,7 +328,13 @@ fun AppRoute() {
                 } else {
                     SettingView(
                         navController = navController,
-                        onLogout = { navController.navigate(AppView.Welcoming.name) { popUpTo(0) { inclusive = true } } }
+                        onLogout = {
+                            navController.navigate(AppView.Welcoming.name) {
+                                popUpTo(0) {
+                                    inclusive = true
+                                }
+                            }
+                        }
                     )
                 }
             }
@@ -287,7 +352,8 @@ fun MyBottomNavigationBar(
 ) {
     NavigationBar(containerColor = Color.White, tonalElevation = 8.dp) {
         items.forEach { item ->
-            val isSelected = currentDestination?.hierarchy?.any { it.route == item.view.name } == true
+            val isSelected =
+                currentDestination?.hierarchy?.any { it.route == item.view.name } == true
             NavigationBarItem(
                 selected = isSelected,
                 onClick = {
