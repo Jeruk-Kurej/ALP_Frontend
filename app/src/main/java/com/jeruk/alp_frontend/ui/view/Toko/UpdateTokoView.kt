@@ -7,8 +7,9 @@ import androidx.compose.foundation.*
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.filled.AddPhotoAlternate
 import androidx.compose.material.icons.filled.CheckCircle
-import androidx.compose.material.icons.filled.PhotoCamera
+import androidx.compose.material.icons.filled.RadioButtonUnchecked
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
@@ -24,13 +25,13 @@ import androidx.compose.ui.unit.sp
 import androidx.lifecycle.viewmodel.compose.viewModel
 import androidx.navigation.NavController
 import coil.compose.AsyncImage
+// import com.jeruk.alp_frontend.utils.uriToFile
 import com.jeruk.alp_frontend.ui.viewmodel.ProductViewModel
 import com.jeruk.alp_frontend.ui.viewmodel.TokoViewModel
 import java.io.File
 import java.text.NumberFormat
 import java.util.Locale
 
-@OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun UpdateTokoView(
     token: String,
@@ -42,31 +43,27 @@ fun UpdateTokoView(
 ) {
     val context = LocalContext.current
 
-    // State Toko
+    // States
     val selectedToko by tokoViewModel.currentToko.collectAsState()
     val isSuccess by tokoViewModel.isSuccess.collectAsState()
     val isLoading by tokoViewModel.isLoading.collectAsState()
-
-    // State Product (Real Data)
     val products by productViewModel.products.collectAsState()
 
-    // Form State
+    // Form Vars
     var name by remember { mutableStateOf("") }
     var location by remember { mutableStateOf("") }
     var description by remember { mutableStateOf("") }
     var selectedImageFile by remember { mutableStateOf<File?>(null) }
     var imageUri by remember { mutableStateOf<Uri?>(null) }
 
-    // List ID Produk yang dipilih
     val selectedProductIds = remember { mutableStateListOf<Int>() }
 
-    // 1. Fetch Data Awal (Toko & Semua Produk)
+    // Init Logic
     LaunchedEffect(Unit) {
         tokoViewModel.getTokoById(token, tokoId)
-        productViewModel.getAllProducts(token) // Tarik semua produk real
+        productViewModel.getAllProducts(token)
     }
 
-    // 2. Pre-fill Form Data Toko
     LaunchedEffect(selectedToko) {
         selectedToko?.let {
             name = it.name
@@ -75,24 +72,16 @@ fun UpdateTokoView(
         }
     }
 
-    // 3. Pre-fill Checkbox Produk (LOGIC DIPERBAIKI)
     LaunchedEffect(products, tokoId) {
         if (products.isNotEmpty()) {
-            val alreadyAssignedIds = products.filter { product ->
-                // ✅ FIX: Cek berdasarkan ID (Angka), bukan Nama
-                product.tokoIds.contains(tokoId)
-            }.map { it.id }
-
+            val alreadyAssignedIds = products.filter { it.tokoIds.contains(tokoId) }.map { it.id }
             selectedProductIds.clear()
             selectedProductIds.addAll(alreadyAssignedIds)
         }
     }
 
-    // 4. Monitor Sukses
     LaunchedEffect(isSuccess) {
-        if (isSuccess) {
-            onSuccess()
-        }
+        if (isSuccess) onSuccess()
     }
 
     DisposableEffect(Unit) {
@@ -109,116 +98,139 @@ fun UpdateTokoView(
     Column(
         modifier = Modifier
             .fillMaxSize()
-            .background(Color(0xFFF9FAFB))
+            .background(Color(0xFFF3F4F6)) // Match Theme
             .verticalScroll(rememberScrollState())
             .padding(24.dp),
         verticalArrangement = Arrangement.spacedBy(20.dp)
     ) {
         // --- HEADER ---
-        Column {
+        Column(modifier = Modifier.padding(bottom = 8.dp)) {
             Text(
-                text = "Edit Detail Toko",
-                fontSize = 24.sp,
-                fontWeight = FontWeight.Black,
-                color = Color(0xFF111827)
+                text = "Edit Informasi Toko",
+                fontSize = 26.sp,
+                fontWeight = FontWeight.Bold,
+                color = TextDark
             )
             Text(
-                text = "Perbarui informasi toko dan atur ketersediaan menu",
-                fontSize = 14.sp,
-                color = Color.Gray
+                text = "Perbarui detail dan kelola menu",
+                fontSize = 15.sp,
+                color = TextGray
             )
         }
 
-        // --- INPUT FIELDS ---
-        CustomTextField(
-            value = name,
-            onValueChange = { name = it },
-            label = "Nama Toko",
-            placeholder = "Nama Toko"
-        )
-        CustomTextField(
-            value = location,
-            onValueChange = { location = it },
-            label = "Lokasi",
-            placeholder = "Alamat Lengkap"
-        )
-        CustomTextField(
-            value = description,
-            onValueChange = { description = it },
-            label = "Deskripsi",
-            placeholder = "Tentang Toko...",
-            minLines = 3
-        )
-
-        // --- IMAGE SECTION ---
-        Text(text = "Foto Toko", fontWeight = FontWeight.Bold, fontSize = 16.sp, color = Color(0xFF374151))
-        Box(
-            modifier = Modifier
-                .fillMaxWidth()
-                .height(200.dp)
-                .clip(RoundedCornerShape(24.dp))
-                .background(Color.White)
-                .border(1.dp, Color(0xFFE5E7EB), RoundedCornerShape(24.dp))
-                .clickable { launcher.launch("image/*") },
-            contentAlignment = Alignment.Center
+        // --- FORM UTAMA ---
+        Card(
+            shape = RoundedCornerShape(16.dp),
+            colors = CardDefaults.cardColors(containerColor = Color.White),
+            border = BorderStroke(1.dp, Color(0xFFE5E7EB))
         ) {
-            if (imageUri != null) {
-                AsyncImage(model = imageUri, contentDescription = null, modifier = Modifier.fillMaxSize(), contentScale = ContentScale.Crop)
-            } else if (!selectedToko?.imageUrl.isNullOrEmpty()) {
-                AsyncImage(model = selectedToko?.imageUrl, contentDescription = null, modifier = Modifier.fillMaxSize(), contentScale = ContentScale.Crop)
-            } else {
-                Column(horizontalAlignment = Alignment.CenterHorizontally) {
-                    Icon(Icons.Default.PhotoCamera, null, tint = Color(0xFF9333EA), modifier = Modifier.size(40.dp))
-                    Text("Ganti Foto Toko", color = Color.Gray, fontSize = 14.sp)
+            Column(
+                modifier = Modifier.padding(20.dp),
+                verticalArrangement = Arrangement.spacedBy(16.dp)
+            ) {
+                // Image Uploader
+                Box(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .height(180.dp)
+                        .clip(RoundedCornerShape(12.dp))
+                        .background(Color(0xFFF9FAFB))
+                        .border(1.dp, Color(0xFFD1D5DB), RoundedCornerShape(12.dp))
+                        .clickable { launcher.launch("image/*") },
+                    contentAlignment = Alignment.Center
+                ) {
+                    if (imageUri != null) {
+                        AsyncImage(
+                            model = imageUri,
+                            contentDescription = null,
+                            modifier = Modifier.fillMaxSize(),
+                            contentScale = ContentScale.Crop
+                        )
+                    } else if (!selectedToko?.imageUrl.isNullOrEmpty()) {
+                        AsyncImage(
+                            model = selectedToko?.imageUrl,
+                            contentDescription = null,
+                            modifier = Modifier.fillMaxSize(),
+                            contentScale = ContentScale.Crop
+                        )
+                    } else {
+                        Column(horizontalAlignment = Alignment.CenterHorizontally) {
+                            Icon(
+                                Icons.Default.AddPhotoAlternate,
+                                null,
+                                tint = GradientStart,
+                                modifier = Modifier.size(40.dp)
+                            )
+                            Text("Ubah Foto", color = TextGray, fontSize = 14.sp)
+                        }
+                    }
                 }
+
+                CustomTextField(name, { name = it }, "Nama Toko", "Nama toko")
+                CustomTextField(location, { location = it }, "Lokasi", "Alamat lengkap")
+                CustomTextField(
+                    description,
+                    { description = it },
+                    "Deskripsi",
+                    "Tentang toko...",
+                    3
+                )
             }
         }
 
-        // --- SECTION PILIH PRODUK ---
+        // --- PILIH MENU (DESIGN BARU) ---
         Text(
-            text = "Kelola Menu di Toko Ini",
+            text = "Ketersediaan Menu",
             fontWeight = FontWeight.Bold,
-            fontSize = 16.sp,
-            color = Color(0xFF374151)
+            fontSize = 18.sp,
+            color = TextDark,
+            modifier = Modifier.padding(top = 8.dp)
         )
 
         Card(
             modifier = Modifier.fillMaxWidth(),
-            shape = RoundedCornerShape(20.dp),
+            shape = RoundedCornerShape(16.dp),
             colors = CardDefaults.cardColors(containerColor = Color.White),
-            border = BorderStroke(1.dp, Color(0xFFF3F4F6))
+            border = BorderStroke(1.dp, Color(0xFFE5E7EB))
         ) {
             Column(modifier = Modifier.padding(16.dp)) {
                 if (products.isEmpty()) {
-                    Box(modifier = Modifier.fillMaxWidth().padding(16.dp), contentAlignment = Alignment.Center) {
-                        Text(
-                            "Memuat produk atau belum ada produk...",
-                            color = Color.Gray,
-                            fontSize = 14.sp
-                        )
+                    Box(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .padding(24.dp),
+                        contentAlignment = Alignment.Center
+                    ) {
+                        Text("Belum ada produk terdaftar.", color = TextGray)
                     }
                 } else {
                     products.forEachIndexed { index, product ->
                         val isSelected = selectedProductIds.contains(product.id)
 
+                        // Row Item yang lebih cantik
                         Row(
                             modifier = Modifier
                                 .fillMaxWidth()
+                                .clip(RoundedCornerShape(8.dp))
                                 .clickable {
                                     if (isSelected) selectedProductIds.remove(product.id)
                                     else selectedProductIds.add(product.id)
                                 }
-                                .padding(vertical = 12.dp),
+                                .background(if (isSelected) Color(0xFFEFF6FF) else Color.Transparent) // Highlight jika dipilih
+                                .padding(vertical = 12.dp, horizontal = 8.dp),
                             verticalAlignment = Alignment.CenterVertically
                         ) {
-                            Checkbox(
-                                checked = isSelected,
-                                onCheckedChange = null, // Handled by row click
-                                colors = CheckboxDefaults.colors(checkedColor = Color(0xFF9333EA))
+                            // Icon Check
+                            Icon(
+                                imageVector = if (isSelected) Icons.Default.CheckCircle else Icons.Default.RadioButtonUnchecked,
+                                contentDescription = null,
+                                tint = if (isSelected) GradientStart else Color(0xFFD1D5DB),
+                                modifier = Modifier.size(24.dp)
                             )
-                            Spacer(modifier = Modifier.width(8.dp))
 
-                            // Tampilkan Gambar Produk Kecil
+                            Spacer(modifier = Modifier.width(12.dp))
+
+                            // Thumbnail Kecil
                             if (product.imageUrl.isNotEmpty()) {
                                 AsyncImage(
                                     model = product.imageUrl,
@@ -229,38 +241,49 @@ fun UpdateTokoView(
                                     contentScale = ContentScale.Crop
                                 )
                                 Spacer(modifier = Modifier.width(12.dp))
+                            } else {
+                                Box(
+                                    modifier = Modifier
+                                        .size(40.dp)
+                                        .clip(RoundedCornerShape(8.dp))
+                                        .background(Color(0xFFE5E7EB)),
+                                    contentAlignment = Alignment.Center
+                                ) {
+                                    Text(
+                                        product.name.take(1),
+                                        fontWeight = FontWeight.Bold,
+                                        color = Color.Gray
+                                    )
+                                }
+                                Spacer(modifier = Modifier.width(12.dp))
                             }
 
+                            // Info Text
                             Column(modifier = Modifier.weight(1f)) {
                                 Text(
                                     text = product.name,
-                                    fontWeight = FontWeight.SemiBold,
-                                    fontSize = 15.sp
+                                    fontWeight = if (isSelected) FontWeight.Bold else FontWeight.Medium,
+                                    fontSize = 14.sp,
+                                    color = if (isSelected) TextDark else Color.Gray
                                 )
                                 Text(
                                     text = formatRupiah(product.price),
-                                    color = Color.Gray,
-                                    fontSize = 13.sp
-                                )
-                            }
-                            if (isSelected) {
-                                Icon(
-                                    Icons.Default.CheckCircle,
-                                    null,
-                                    tint = Color(0xFF10B981),
-                                    modifier = Modifier.size(20.dp)
+                                    fontSize = 12.sp,
+                                    color = if (isSelected) GradientStart else Color.Gray
                                 )
                             }
                         }
-                        if (index < products.size - 1) HorizontalDivider(color = Color(0xFFF3F4F6))
+                        if (index < products.size - 1) {
+                            Divider(color = Color(0xFFF3F4F6), thickness = 1.dp)
+                        }
                     }
                 }
             }
         }
 
-        Spacer(modifier = Modifier.height(12.dp))
+        Spacer(modifier = Modifier.height(8.dp))
 
-        // --- SUBMIT BUTTON ---
+        // --- SUBMIT BUTTON (GRADIENT) ---
         Button(
             onClick = {
                 tokoViewModel.updateToko(
@@ -270,13 +293,13 @@ fun UpdateTokoView(
                     description,
                     location,
                     selectedImageFile,
-                    selectedProductIds // Kirim ID produk yang dicentang
+                    selectedProductIds
                 )
             },
             modifier = Modifier
                 .fillMaxWidth()
-                .height(58.dp)
-                .clip(RoundedCornerShape(18.dp)),
+                .height(52.dp)
+                .clip(RoundedCornerShape(12.dp)),
             enabled = !isLoading && name.isNotEmpty(),
             colors = ButtonDefaults.buttonColors(containerColor = Color.Transparent),
             contentPadding = PaddingValues(0.dp)
@@ -286,21 +309,29 @@ fun UpdateTokoView(
                     .fillMaxSize()
                     .background(
                         brush = Brush.horizontalGradient(
-                            listOf(Color(0xFF9333EA), Color(0xFFBA68C8))
+                            listOf(GradientStart, GradientEnd)
                         )
                     ),
                 contentAlignment = Alignment.Center
             ) {
-                if (isLoading) CircularProgressIndicator(color = Color.White, modifier = Modifier.size(24.dp))
-                else Text("Simpan Perubahan", fontWeight = FontWeight.Bold, color = Color.White, fontSize = 16.sp)
+                if (isLoading) CircularProgressIndicator(
+                    color = Color.White,
+                    modifier = Modifier.size(24.dp)
+                )
+                else Text(
+                    "Simpan Perubahan",
+                    fontWeight = FontWeight.Bold,
+                    color = Color.White,
+                    fontSize = 16.sp
+                )
             }
         }
 
-        Spacer(modifier = Modifier.height(40.dp))
+        Spacer(modifier = Modifier.height(30.dp))
     }
 }
 
-// Helper Format Rupiah (Bisa ditaruh di utils kalau mau rapi)
+// Helper Format Rupiah
 fun formatRupiah(number: Int): String {
     val localeID = Locale("in", "ID")
     val formatRupiah = NumberFormat.getCurrencyInstance(localeID)

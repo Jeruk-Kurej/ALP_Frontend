@@ -12,7 +12,6 @@ import androidx.compose.material.icons.filled.Add
 import androidx.compose.material.icons.filled.Delete
 import androidx.compose.material.icons.filled.Edit
 import androidx.compose.material.icons.filled.Search
-import androidx.compose.material.icons.filled.Storefront
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
@@ -34,31 +33,26 @@ import androidx.lifecycle.LifecycleEventObserver
 import androidx.lifecycle.viewmodel.compose.viewModel
 import androidx.navigation.NavController
 import coil.compose.AsyncImage
-import coil.compose.AsyncImagePainter
 import com.jeruk.alp_frontend.ui.model.Category
 import com.jeruk.alp_frontend.ui.model.Product
 import com.jeruk.alp_frontend.ui.route.AppView
 import com.jeruk.alp_frontend.ui.viewmodel.CategoryViewModel
 import com.jeruk.alp_frontend.ui.viewmodel.ProductViewModel
 
-// --- PALETTE WARNA PROFESSIONAL (Clean & Elegant) ---
-// Indigo: Warna utama yang melambangkan kepercayaan & teknologi
+// --- PALETTE WARNA PROFESSIONAL ---
 val BrandPrimary = Color(0xFF4F46E5)    // Indigo 600
-val BrandSoft = Color(0xFFEEF2FF)       // Indigo 50 (Background)
+val BrandSoft = Color(0xFFEEF2FF)       // Indigo 50
+val PriceColor = Color(0xFF059669)      // Emerald 600
+val TextDark = Color(0xFF111827)        // Gray 900
+val TextGray = Color(0xFF6B7280)        // Gray 500
+val CategoryText = Color(0xFF4338CA)    // Indigo 700
+val CategoryBg = Color(0xFFE0E7FF)      // Indigo 100
+val RedDanger = Color(0xFFEF4444)       // Merah
+val RedSoft = Color(0xFFFEF2F2)         // Merah Muda
 
-// Emerald: Warna khusus Harga (Money/Success)
-val PriceColor = Color(0xFF059669)      // Emerald 600 (Jelas & Elegan)
-
-// Slate: Warna Netral untuk Teks
-val TextDark = Color(0xFF111827)        // Gray 900 (Judul)
-val TextGray = Color(0xFF6B7280)        // Gray 500 (Subtext)
-
-// Kategori Chip
-val CategoryText = Color(0xFF4338CA)    // Indigo 700 (Teks Kategori)
-val CategoryBg = Color(0xFFE0E7FF)      // Indigo 100 (Background Kategori)
-
-val RedDanger = Color(0xFFEF4444)       // Merah (Delete)
-val RedSoft = Color(0xFFFEF2F2)         // Merah Muda (Background Delete)
+// 🔥 WARNA GRADIENT BARU (Dari TokoAdminView)
+val GradientStart = Color(0xFF6B9FFF)
+val GradientEnd = Color(0xFFBA68C8)
 
 @Composable
 fun ProductAdminView(
@@ -67,7 +61,7 @@ fun ProductAdminView(
     productViewModel: ProductViewModel = viewModel(),
     categoryViewModel: CategoryViewModel = viewModel()
 ) {
-    var selectedTab by remember { mutableStateOf(0) }
+    var selectedTab by remember { mutableIntStateOf(0) } // Menggunakan mutableIntStateOf agar lebih optimal
     var searchQuery by remember { mutableStateOf("") }
 
     val products by productViewModel.products.collectAsState()
@@ -101,7 +95,7 @@ fun ProductAdminView(
     Column(
         modifier = Modifier
             .fillMaxSize()
-            .background(Color(0xFFF3F4F6)) // Background abu-abu sangat muda (Clean)
+            .background(Color(0xFFF3F4F6))
     ) {
         // --- TAB SECTION ---
         Card(
@@ -110,7 +104,7 @@ fun ProductAdminView(
                 .padding(horizontal = 24.dp, vertical = 16.dp),
             shape = RoundedCornerShape(16.dp),
             colors = CardDefaults.cardColors(containerColor = Color.White),
-            elevation = CardDefaults.cardElevation(1.dp) // Shadow tipis
+            elevation = CardDefaults.cardElevation(1.dp)
         ) {
             Row(
                 modifier = Modifier
@@ -177,7 +171,9 @@ fun TabButton(
                 .fillMaxSize()
                 .clip(RoundedCornerShape(12.dp))
                 .background(
-                    if (isSelected) BrandPrimary else Color.Transparent
+                    // Update Tab Aktif juga mengikuti nuansa Gradient (opsional, tapi lebih serasi)
+                    if (isSelected) Brush.horizontalGradient(listOf(GradientStart, GradientEnd))
+                    else Brush.linearGradient(listOf(Color.Transparent, Color.Transparent))
                 ),
             contentAlignment = Alignment.Center
         ) {
@@ -186,6 +182,49 @@ fun TabButton(
                 fontWeight = if (isSelected) FontWeight.SemiBold else FontWeight.Medium,
                 fontSize = 15.sp
             )
+        }
+    }
+}
+
+// --- KOMPONEN TOMBOL TAMBAH GRADIENT (Reusable) ---
+@Composable
+fun GradientAddButton(
+    text: String,
+    onClick: () -> Unit
+) {
+    Button(
+        onClick = onClick,
+        shape = RoundedCornerShape(12.dp),
+        colors = ButtonDefaults.buttonColors(containerColor = Color.Transparent),
+        contentPadding = PaddingValues(0.dp),
+        modifier = Modifier.height(40.dp)
+    ) {
+        Box(
+            modifier = Modifier
+                .clip(RoundedCornerShape(12.dp))
+                .background(
+                    brush = Brush.horizontalGradient(
+                        colors = listOf(GradientStart, GradientEnd)
+                    )
+                )
+                .padding(horizontal = 16.dp, vertical = 8.dp),
+            contentAlignment = Alignment.Center
+        ) {
+            Row(verticalAlignment = Alignment.CenterVertically) {
+                Icon(
+                    Icons.Default.Add,
+                    null,
+                    tint = Color.White,
+                    modifier = Modifier.size(18.dp)
+                )
+                Spacer(Modifier.width(4.dp))
+                Text(
+                    text = text,
+                    color = Color.White,
+                    fontWeight = FontWeight.Bold,
+                    fontSize = 14.sp
+                )
+            }
         }
     }
 }
@@ -238,51 +277,20 @@ fun ProductListContent(
                 )
             }
 
-            // Tambah Button (Modern Gradient Blue-Teal)
-            Button(
-                onClick = { navController.navigate(AppView.AddProduct.name) },
-                shape = RoundedCornerShape(12.dp),
-                colors = ButtonDefaults.buttonColors(containerColor = Color.Transparent),
-                contentPadding = PaddingValues(0.dp),
-                modifier = Modifier.height(42.dp)
-            ) {
-                Box(
-                    modifier = Modifier
-                        .clip(RoundedCornerShape(12.dp))
-                        .background(BrandPrimary)
-                        .padding(horizontal = 20.dp, vertical = 10.dp),
-                    contentAlignment = Alignment.Center
-                ) {
-                    Row(
-                        verticalAlignment = Alignment.CenterVertically,
-                        horizontalArrangement = Arrangement.spacedBy(8.dp)
-                    ) {
-                        Icon(
-                            Icons.Default.Add,
-                            contentDescription = null,
-                            tint = Color.White,
-                            modifier = Modifier.size(18.dp)
-                        )
-                        Text(
-                            text = "Tambah",
-                            color = Color.White,
-                            fontWeight = FontWeight.SemiBold,
-                            fontSize = 14.sp
-                        )
-                    }
-                }
-            }
+            // 🔥 MENGGUNAKAN TOMBOL GRADIENT BARU
+            GradientAddButton(
+                text = "Tambah",
+                onClick = { navController.navigate(AppView.AddProduct.name) }
+            )
         }
 
         Spacer(modifier = Modifier.height(20.dp))
 
-        // Search Bar (Clean Style)
+        // Search Bar
         OutlinedTextField(
             value = searchQuery,
             onValueChange = onSearchQueryChange,
-            modifier = Modifier
-                .fillMaxWidth()
-                .clip(RoundedCornerShape(12.dp)),
+            modifier = Modifier.fillMaxWidth(),
             placeholder = {
                 Text("Cari nama atau deskripsi...", color = TextGray, fontSize = 14.sp)
             },
@@ -292,10 +300,11 @@ fun ProductListContent(
             colors = OutlinedTextFieldDefaults.colors(
                 focusedContainerColor = Color.White,
                 unfocusedContainerColor = Color.White,
-                focusedBorderColor = BrandPrimary,
-                unfocusedBorderColor = Color(0xFFE5E7EB), // Abu-abu sangat muda
-                cursorColor = BrandPrimary
+                focusedBorderColor = GradientStart, // Update border focus ke warna tema
+                unfocusedBorderColor = Color(0xFFE5E7EB),
+                cursorColor = GradientStart
             ),
+            shape = RoundedCornerShape(12.dp),
             singleLine = true
         )
 
@@ -307,24 +316,18 @@ fun ProductListContent(
                 modifier = Modifier.fillMaxSize(),
                 contentAlignment = Alignment.Center
             ) {
-                CircularProgressIndicator(color = BrandPrimary)
+                CircularProgressIndicator(color = GradientEnd)
             }
         } else if (filteredProducts.isEmpty()) {
             Box(
                 modifier = Modifier.fillMaxSize(),
                 contentAlignment = Alignment.Center
             ) {
-                Column(
-                    horizontalAlignment = Alignment.CenterHorizontally,
-                    verticalArrangement = Arrangement.spacedBy(8.dp)
-                ) {
-                    Text(
-                        text = "Tidak ada produk ditemukan",
-                        fontSize = 16.sp,
-                        fontWeight = FontWeight.Medium,
-                        color = TextGray
-                    )
-                }
+                Text(
+                    text = "Tidak ada produk ditemukan",
+                    fontSize = 16.sp,
+                    color = TextGray
+                )
             }
         } else {
             LazyColumn(
@@ -348,7 +351,6 @@ fun ProductListContent(
     }
 }
 
-// 🔥 REDESIGN: Professional Card (Elegant & Clean)
 @Composable
 fun ProductCard(
     product: Product,
@@ -361,8 +363,8 @@ fun ProductCard(
             .padding(vertical = 4.dp),
         shape = RoundedCornerShape(16.dp),
         colors = CardDefaults.cardColors(containerColor = Color.White),
-        elevation = CardDefaults.cardElevation(defaultElevation = 0.dp), // Flat style
-        border = androidx.compose.foundation.BorderStroke(1.dp, Color(0xFFF3F4F6)) // Border tipis halus
+        elevation = CardDefaults.cardElevation(defaultElevation = 0.dp),
+        border = androidx.compose.foundation.BorderStroke(1.dp, Color(0xFFF3F4F6))
     ) {
         Row(
             modifier = Modifier
@@ -370,10 +372,10 @@ fun ProductCard(
                 .fillMaxWidth(),
             verticalAlignment = Alignment.CenterVertically
         ) {
-            // 1. Image Thumbnail
+            // Image Thumbnail
             Card(
                 shape = RoundedCornerShape(12.dp),
-                modifier = Modifier.size(90.dp), // Sedikit lebih compact
+                modifier = Modifier.size(90.dp),
                 elevation = CardDefaults.cardElevation(0.dp)
             ) {
                 if (product.imageUrl.isNotBlank()) {
@@ -402,7 +404,7 @@ fun ProductCard(
 
             Spacer(modifier = Modifier.width(16.dp))
 
-            // 2. Info Content
+            // Info Content
             Column(
                 modifier = Modifier
                     .weight(1f)
@@ -410,14 +412,13 @@ fun ProductCard(
                 verticalArrangement = Arrangement.SpaceBetween
             ) {
                 Column(verticalArrangement = Arrangement.spacedBy(4.dp)) {
-                    // Kategori Chip (Clean & Professional)
                     Surface(
-                        color = CategoryBg, // Soft Indigo Background
+                        color = CategoryBg,
                         shape = RoundedCornerShape(6.dp),
                     ) {
                         Text(
                             text = product.categoryName.uppercase(),
-                            color = CategoryText, // Deep Indigo Text
+                            color = CategoryText,
                             fontSize = 10.sp,
                             fontWeight = FontWeight.Bold,
                             letterSpacing = 0.5.sp,
@@ -425,7 +426,6 @@ fun ProductCard(
                         )
                     }
 
-                    // Nama Produk
                     Text(
                         text = product.name,
                         fontSize = 16.sp,
@@ -437,23 +437,15 @@ fun ProductCard(
                     )
                 }
 
-                // Harga & Toko
-                Row(
-                    verticalAlignment = Alignment.CenterVertically,
-                    horizontalArrangement = Arrangement.SpaceBetween,
-                    modifier = Modifier.fillMaxWidth()
-                ) {
-                    // Harga (Emerald Green - Money Color)
-                    Text(
-                        text = "Rp ${product.price}",
-                        fontSize = 15.sp,
-                        fontWeight = FontWeight.Bold,
-                        color = PriceColor
-                    )
-                }
+                Text(
+                    text = "Rp ${product.price}",
+                    fontSize = 15.sp,
+                    fontWeight = FontWeight.Bold,
+                    color = PriceColor
+                )
             }
 
-            // 3. Actions (Vertical, Minimalist)
+            // Actions
             Column(
                 verticalArrangement = Arrangement.spacedBy(4.dp),
                 horizontalAlignment = Alignment.End,
@@ -461,7 +453,7 @@ fun ProductCard(
             ) {
                 ActionIconButton(
                     icon = Icons.Default.Edit,
-                    color = BrandPrimary,
+                    color = GradientStart, // Ubah ke warna tema
                     backgroundColor = BrandSoft,
                     onClick = onEdit
                 )
@@ -525,22 +517,12 @@ fun CategoryListContent(
                     color = TextGray
                 )
             }
-            Button(
-                onClick = { navController.navigate(AppView.AddCategory.name) },
-                shape = RoundedCornerShape(12.dp),
-                colors = ButtonDefaults.buttonColors(containerColor = BrandPrimary),
-                contentPadding = PaddingValues(horizontal = 16.dp, vertical = 0.dp),
-                modifier = Modifier.height(40.dp)
-            ) {
-                Icon(
-                    Icons.Default.Add,
-                    contentDescription = null,
-                    tint = Color.White,
-                    modifier = Modifier.size(18.dp)
-                )
-                Spacer(modifier = Modifier.width(8.dp))
-                Text(text = "Tambah", color = Color.White, fontSize = 14.sp)
-            }
+
+            // 🔥 MENGGUNAKAN TOMBOL GRADIENT BARU (Konsisten)
+            GradientAddButton(
+                text = "Tambah",
+                onClick = { navController.navigate(AppView.AddCategory.name) }
+            )
         }
 
         Spacer(modifier = Modifier.height(20.dp))
@@ -554,7 +536,7 @@ fun CategoryListContent(
             colors = OutlinedTextFieldDefaults.colors(
                 focusedContainerColor = Color.White,
                 unfocusedContainerColor = Color.White,
-                focusedBorderColor = BrandPrimary,
+                focusedBorderColor = GradientStart,
                 unfocusedBorderColor = Color(0xFFE5E7EB)
             ),
             shape = RoundedCornerShape(12.dp),
@@ -565,7 +547,7 @@ fun CategoryListContent(
 
         if (isLoading) {
             Box(modifier = Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
-                CircularProgressIndicator(color = BrandPrimary)
+                CircularProgressIndicator(color = GradientEnd)
             }
         } else if (filteredCategories.isEmpty()) {
             Box(modifier = Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
@@ -592,7 +574,6 @@ fun CategoryListContent(
     }
 }
 
-// 🔥 REDESIGN: Category Card - Minimalist
 @Composable
 fun CategoryCard(
     category: Category,
@@ -614,7 +595,7 @@ fun CategoryCard(
                 .fillMaxWidth(),
             verticalAlignment = Alignment.CenterVertically
         ) {
-            // Icon Placeholder (Blue Theme)
+            // Icon Placeholder
             Box(
                 modifier = Modifier
                     .size(42.dp)
@@ -625,7 +606,7 @@ fun CategoryCard(
                 Text(
                     text = category.name.firstOrNull()?.toString()?.uppercase() ?: "C",
                     fontWeight = FontWeight.Bold,
-                    color = BrandPrimary,
+                    color = GradientStart, // Ubah ke warna tema
                     fontSize = 18.sp
                 )
             }
@@ -643,7 +624,7 @@ fun CategoryCard(
             Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
                 ActionIconButton(
                     icon = Icons.Default.Edit,
-                    color = BrandPrimary,
+                    color = GradientStart,
                     backgroundColor = BrandSoft,
                     onClick = onEdit,
                     size = 32.dp,
@@ -674,7 +655,7 @@ fun ActionIconButton(
     Box(
         modifier = Modifier
             .size(size)
-            .clip(RoundedCornerShape(8.dp)) // Sedikit lebih kotak (Squircle) biar lebih modern
+            .clip(RoundedCornerShape(8.dp))
             .background(backgroundColor)
             .clickable { onClick() },
         contentAlignment = Alignment.Center

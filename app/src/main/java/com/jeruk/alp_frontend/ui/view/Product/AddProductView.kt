@@ -4,13 +4,10 @@ import android.net.Uri
 import android.widget.Toast
 import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.contract.ActivityResultContracts
-import androidx.compose.foundation.background
-import androidx.compose.foundation.clickable
+import androidx.compose.foundation.*
 import androidx.compose.foundation.layout.*
-import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.text.KeyboardOptions
-import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.AddPhotoAlternate
 import androidx.compose.material.icons.filled.ArrowDropDown
@@ -21,11 +18,8 @@ import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
-import androidx.compose.ui.draw.drawBehind
-import androidx.compose.ui.geometry.CornerRadius
+import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
-import androidx.compose.ui.graphics.PathEffect
-import androidx.compose.ui.graphics.drawscope.Stroke
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.platform.LocalContext
@@ -40,11 +34,8 @@ import com.jeruk.alp_frontend.ui.viewmodel.CategoryViewModel
 import com.jeruk.alp_frontend.ui.viewmodel.ProductViewModel
 import java.io.File
 
-// --- COLORS ---
-private val BrandBackground = Color(0xFFF8FAFC)
-private val TextMain = Color(0xFF1E293B)
-private val TextLabel = Color(0xFF64748B)
-
+// --- COLORS (Sama dengan Toko) ---
+private val PageBackground = Color(0xFFF3F4F6)
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun AddProductView(
@@ -75,6 +66,13 @@ fun AddProductView(
     val isSuccess by productViewModel.isSuccess.collectAsState()
     val productErrorMessage by productViewModel.errorMessage.collectAsState()
 
+    // Validasi Form (Agar tombol nyala/mati)
+    val isFormValid = productName.isNotBlank() &&
+            productDescription.isNotBlank() &&
+            productPrice.isNotBlank() &&
+            selectedCategoryId != null &&
+            imageFile != null
+
     LaunchedEffect(Unit) {
         productViewModel.clearMessages()
         if (token.isNotEmpty()) categoryViewModel.getAllCategories(token)
@@ -103,6 +101,7 @@ fun AddProductView(
             uri?.let {
                 selectedImageUri = it
                 try {
+                    // Konversi Uri ke File
                     val inputStream = context.contentResolver.openInputStream(it)
                     val file = File(context.cacheDir, "product_${System.currentTimeMillis()}.jpg")
                     file.outputStream().use { out -> inputStream?.copyTo(out) }
@@ -117,231 +116,244 @@ fun AddProductView(
     Column(
         modifier = Modifier
             .fillMaxSize()
-            .background(BrandBackground)
-            .padding(top = 8.dp)
+            .background(PageBackground)
+            .padding(24.dp),
+        verticalArrangement = Arrangement.spacedBy(20.dp)
     ) {
-
-        // 1. SCROLLABLE CONTENT
+        // 1. SCROLLABLE FORM
         Column(
             modifier = Modifier
                 .weight(1f)
-                .verticalScroll(rememberScrollState())
-                .padding(horizontal = 16.dp, vertical = 10.dp),
-            verticalArrangement = Arrangement.spacedBy(12.dp)
+                .verticalScroll(rememberScrollState()),
+            verticalArrangement = Arrangement.spacedBy(20.dp)
         ) {
-            // Upload Gambar
-            AddSectionCard(title = "Media Produk") {
-                Box(
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .height(180.dp)
-                        .clip(RoundedCornerShape(12.dp))
-                        .background(if (selectedImageUri == null) Color(0xFFF1F5F9) else Color.White)
-                        .addDashedBorder(
-                            if (selectedImageUri == null) 2.dp else 0.dp,
-                            Color(0xFFCBD5E1),
-                            12.dp
-                        )
-                        .clickable { imagePickerLauncher.launch("image/*") },
-                    contentAlignment = Alignment.Center
+            // Header
+            Column {
+                Text(
+                    text = "Tambah Produk",
+                    fontSize = 26.sp,
+                    fontWeight = FontWeight.Bold,
+                    color = TextDark
+                )
+                Text(
+                    text = "Lengkapi detail produkmu",
+                    fontSize = 15.sp,
+                    color = TextGray
+                )
+            }
+
+            // Card Form Utama
+            Card(
+                shape = RoundedCornerShape(16.dp),
+                colors = CardDefaults.cardColors(containerColor = Color.White),
+                border = BorderStroke(1.dp, Color(0xFFE5E7EB))
+            ) {
+                Column(
+                    modifier = Modifier.padding(20.dp),
+                    verticalArrangement = Arrangement.spacedBy(16.dp)
                 ) {
-                    if (selectedImageUri != null) {
-                        AsyncImage(
-                            model = selectedImageUri,
-                            contentDescription = null,
-                            modifier = Modifier.fillMaxSize(),
-                            contentScale = ContentScale.Crop
-                        )
-                    } else {
-                        Column(horizontalAlignment = Alignment.CenterHorizontally) {
-                            Icon(
-                                Icons.Default.AddPhotoAlternate,
-                                null,
-                                tint = BrandPrimary,
-                                modifier = Modifier.size(40.dp)
+                    // Upload Gambar Area
+                    Box(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .height(180.dp)
+                            .clip(RoundedCornerShape(12.dp))
+                            .background(if (selectedImageUri == null) Color(0xFFF9FAFB) else Color.White)
+                            .border(1.dp, Color(0xFFD1D5DB), RoundedCornerShape(12.dp))
+                            .clickable { imagePickerLauncher.launch("image/*") },
+                        contentAlignment = Alignment.Center
+                    ) {
+                        if (selectedImageUri != null) {
+                            AsyncImage(
+                                model = selectedImageUri,
+                                contentDescription = null,
+                                modifier = Modifier.fillMaxSize(),
+                                contentScale = ContentScale.Crop
                             )
-                            Spacer(modifier = Modifier.height(4.dp))
-                            Text(
-                                "Upload Foto",
-                                color = TextMain,
-                                fontWeight = FontWeight.SemiBold,
-                                fontSize = 14.sp
-                            )
-                        }
-                    }
-                }
-            }
-
-            // Info Dasar
-            AddSectionCard(title = "Informasi Dasar") {
-                AddCustomTextField(
-                    value = productName,
-                    onValueChange = { productName = it },
-                    label = "Nama Produk",
-                    placeholder = "Contoh: Sepatu Nike",
-                    icon = Icons.Default.Label
-                )
-                AddCustomTextField(
-                    value = productDescription,
-                    onValueChange = { productDescription = it },
-                    label = "Deskripsi",
-                    placeholder = "Jelaskan produkmu...",
-                    icon = Icons.Default.Description,
-                    singleLine = false,
-                    modifier = Modifier.height(100.dp)
-                )
-            }
-
-            // Detail
-            AddSectionCard(title = "Detail Penjualan") {
-                Row(horizontalArrangement = Arrangement.spacedBy(10.dp)) {
-                    Box(modifier = Modifier.weight(1f)) {
-                        ExposedDropdownMenuBox(
-                            expanded = categoryExpanded,
-                            onExpandedChange = { categoryExpanded = !categoryExpanded }
-                        ) {
-                            AddCustomTextField(
-                                value = selectedCategoryName,
-                                onValueChange = {},
-                                label = "Kategori",
-                                readOnly = true,
-                                trailingIcon = { Icon(Icons.Default.ArrowDropDown, null) },
-                                modifier = Modifier.menuAnchor()
-                            )
-                            ExposedDropdownMenu(
-                                expanded = categoryExpanded,
-                                onDismissRequest = { categoryExpanded = false },
-                                modifier = Modifier.background(Color.White)
-                            ) {
-                                categories.forEach { cat ->
-                                    DropdownMenuItem(
-                                        text = { Text(cat.name) },
-                                        onClick = {
-                                            selectedCategoryId = cat.id
-                                            selectedCategoryName = cat.name
-                                            categoryExpanded = false
-                                        }
-                                    )
-                                }
+                        } else {
+                            Column(horizontalAlignment = Alignment.CenterHorizontally) {
+                                Icon(
+                                    imageVector = Icons.Default.AddPhotoAlternate,
+                                    contentDescription = null,
+                                    tint = GradientStart,
+                                    modifier = Modifier.size(42.dp)
+                                )
+                                Spacer(modifier = Modifier.height(8.dp))
+                                Text(
+                                    "Pilih Foto Produk",
+                                    color = TextGray,
+                                    fontWeight = FontWeight.Medium,
+                                    fontSize = 14.sp
+                                )
                             }
                         }
                     }
-                    Box(modifier = Modifier.weight(1f)) {
-                        AddCustomTextField(
-                            value = productPrice,
-                            onValueChange = {
-                                if (it.all { char -> char.isDigit() }) productPrice = it
-                            },
-                            label = "Harga",
-                            placeholder = "0",
-                            prefixText = "Rp ", // <--- GANTI ICON JADI PREFIX TEKS RP
-                            keyboardType = KeyboardType.Number
-                        )
+
+                    // Input Fields
+                    ProductCustomTextField(
+                        value = productName,
+                        onValueChange = { productName = it },
+                        label = "Nama Produk",
+                        placeholder = "Contoh: Sepatu Nike",
+                        icon = Icons.Default.Label
+                    )
+
+                    ProductCustomTextField(
+                        value = productDescription,
+                        onValueChange = { productDescription = it },
+                        label = "Deskripsi",
+                        placeholder = "Jelaskan produkmu...",
+                        icon = Icons.Default.Description,
+                        singleLine = false,
+                        modifier = Modifier.height(100.dp)
+                    )
+
+                    Row(horizontalArrangement = Arrangement.spacedBy(12.dp)) {
+                        // Dropdown Kategori
+                        Box(modifier = Modifier.weight(1f)) {
+                            ExposedDropdownMenuBox(
+                                expanded = categoryExpanded,
+                                onExpandedChange = { categoryExpanded = !categoryExpanded }
+                            ) {
+                                ProductCustomTextField(
+                                    value = selectedCategoryName,
+                                    onValueChange = {},
+                                    label = "Kategori",
+                                    readOnly = true,
+                                    trailingIcon = { Icon(Icons.Default.ArrowDropDown, null) },
+                                    modifier = Modifier.menuAnchor()
+                                )
+                                ExposedDropdownMenu(
+                                    expanded = categoryExpanded,
+                                    onDismissRequest = { categoryExpanded = false },
+                                    modifier = Modifier.background(Color.White)
+                                ) {
+                                    categories.forEach { cat ->
+                                        DropdownMenuItem(
+                                            text = { Text(cat.name) },
+                                            onClick = {
+                                                selectedCategoryId = cat.id
+                                                selectedCategoryName = cat.name
+                                                categoryExpanded = false
+                                            }
+                                        )
+                                    }
+                                }
+                            }
+                        }
+
+                        // Input Harga
+                        Box(modifier = Modifier.weight(1f)) {
+                            ProductCustomTextField(
+                                value = productPrice,
+                                onValueChange = {
+                                    if (it.all { char -> char.isDigit() }) productPrice = it
+                                },
+                                label = "Harga",
+                                placeholder = "0",
+                                prefixText = "Rp ",
+                                keyboardType = KeyboardType.Number
+                            )
+                        }
                     }
                 }
             }
         }
 
-        // 2. BOTTOM BUTTON
-        Surface(
-            modifier = Modifier.fillMaxWidth(),
-            shadowElevation = 10.dp,
-            color = Color.White
-        ) {
-            Box(modifier = Modifier.padding(16.dp)) {
-                Button(
-                    onClick = {
-                        val priceVal = productPrice.toIntOrNull()
-                        if (productName.isBlank() || productDescription.isBlank() || priceVal == null || selectedCategoryId == null || imageFile == null) {
-                            Toast.makeText(context, "Lengkapi semua data", Toast.LENGTH_SHORT)
-                                .show()
-                            return@Button
-                        }
-                        productViewModel.createProduct(
-                            token,
-                            productName,
-                            productDescription,
-                            priceVal,
-                            selectedCategoryId!!,
-                            "",
-                            imageFile
-                        )
-                    },
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .height(48.dp),
-                    shape = RoundedCornerShape(10.dp),
-                    colors = ButtonDefaults.buttonColors(containerColor = BrandPrimary),
-                    enabled = !isLoading
-                ) {
-                    if (isLoading) CircularProgressIndicator(
-                        color = Color.White,
-                        modifier = Modifier.size(24.dp)
+        // 2. GRADIENT BUTTON
+        Button(
+            onClick = {
+                val priceVal = productPrice.toIntOrNull()
+                if (priceVal != null && selectedCategoryId != null) {
+                    productViewModel.createProduct(
+                        token,
+                        productName,
+                        productDescription,
+                        priceVal,
+                        selectedCategoryId!!,
+                        "",
+                        imageFile
                     )
-                    else Text("Simpan Produk", fontWeight = FontWeight.Bold)
                 }
+            },
+            modifier = Modifier
+                .fillMaxWidth()
+                .height(52.dp)
+                .clip(RoundedCornerShape(12.dp)),
+            enabled = !isLoading && isFormValid, // Logic Validasi di sini
+            colors = ButtonDefaults.buttonColors(containerColor = Color.Transparent),
+            contentPadding = PaddingValues(0.dp)
+        ) {
+            Box(
+                modifier = Modifier
+                    .fillMaxSize()
+                    .background(
+                        brush = if (!isLoading && isFormValid) {
+                            Brush.horizontalGradient(listOf(GradientStart, GradientEnd))
+                        } else {
+                            Brush.horizontalGradient(listOf(Color(0xFFD1D5DB), Color(0xFF9CA3AF)))
+                        }
+                    ),
+                contentAlignment = Alignment.Center
+            ) {
+                if (isLoading) CircularProgressIndicator(
+                    color = Color.White,
+                    modifier = Modifier.size(24.dp)
+                )
+                else Text(
+                    "Simpan Produk",
+                    fontWeight = FontWeight.Bold,
+                    fontSize = 16.sp,
+                    color = Color.White
+                )
             }
         }
     }
 }
 
-// --- HELPER COMPONENTS ---
+// --- REUSABLE COMPONENT (Style Toko) ---
 @Composable
-fun AddSectionCard(title: String, content: @Composable ColumnScope.() -> Unit) {
-    Card(
-        modifier = Modifier.fillMaxWidth(),
-        shape = RoundedCornerShape(12.dp),
-        colors = CardDefaults.cardColors(containerColor = Color.White),
-        elevation = CardDefaults.cardElevation(0.dp),
-        border = androidx.compose.foundation.BorderStroke(1.dp, Color(0xFFE2E8F0))
-    ) {
-        Column(
-            modifier = Modifier.padding(16.dp),
-            verticalArrangement = Arrangement.spacedBy(14.dp)
-        ) {
-            Text(title, fontSize = 15.sp, fontWeight = FontWeight.Bold, color = Color(0xFF1E293B))
-            content()
-        }
-    }
-}
-
-@Composable
-fun AddCustomTextField(
+fun ProductCustomTextField(
     value: String,
     onValueChange: (String) -> Unit,
     label: String,
     placeholder: String = "",
     icon: ImageVector? = null,
-    prefixText: String? = null, // Tambahan parameter untuk Prefix Text (Rp)
+    prefixText: String? = null,
     singleLine: Boolean = true,
     keyboardType: KeyboardType = KeyboardType.Text,
     readOnly: Boolean = false,
     trailingIcon: @Composable (() -> Unit)? = null,
     modifier: Modifier = Modifier
 ) {
-    Column(verticalArrangement = Arrangement.spacedBy(4.dp), modifier = modifier) {
-        Text(label, fontSize = 13.sp, fontWeight = FontWeight.Medium, color = Color(0xFF64748B))
+    Column(verticalArrangement = Arrangement.spacedBy(6.dp), modifier = modifier) {
+        Text(
+            text = label,
+            fontSize = 14.sp,
+            fontWeight = FontWeight.SemiBold,
+            color = TextDark
+        )
         OutlinedTextField(
             value = value,
             onValueChange = onValueChange,
-            placeholder = { Text(placeholder, color = Color(0xFF94A3B8), fontSize = 14.sp) },
-            // Logic: Kalau ada icon pakai icon, kalau ada prefixText pakai prefixText
+            placeholder = { Text(placeholder, color = Color(0xFF9CA3AF)) },
             leadingIcon = if (icon != null) {
-                { Icon(icon, null, tint = Color(0xFF94A3B8), modifier = Modifier.size(18.dp)) }
+                { Icon(icon, null, tint = GradientStart, modifier = Modifier.size(20.dp)) }
             } else null,
             prefix = if (prefixText != null) {
-                { Text(prefixText, fontWeight = FontWeight.SemiBold, color = TextMain) }
+                { Text(prefixText, fontWeight = FontWeight.SemiBold, color = TextDark) }
             } else null,
             trailingIcon = trailingIcon,
             modifier = Modifier.fillMaxWidth(),
-            shape = RoundedCornerShape(10.dp),
+            shape = RoundedCornerShape(12.dp),
             colors = OutlinedTextFieldDefaults.colors(
                 focusedContainerColor = Color.White,
                 unfocusedContainerColor = Color.White,
-                focusedBorderColor = Color(0xFF4F46E5),
-                unfocusedBorderColor = Color(0xFFE2E8F0),
-                focusedTextColor = Color(0xFF1E293B),
-                unfocusedTextColor = Color(0xFF1E293B)
+                focusedBorderColor = GradientStart,
+                unfocusedBorderColor = Color(0xFFE5E7EB),
+                cursorColor = GradientStart,
+                focusedTextColor = TextDark,
+                unfocusedTextColor = TextDark
             ),
             singleLine = singleLine,
             keyboardOptions = KeyboardOptions(keyboardType = keyboardType),
@@ -349,16 +361,4 @@ fun AddCustomTextField(
             textStyle = LocalTextStyle.current.copy(fontSize = 14.sp)
         )
     }
-}
-
-fun Modifier.addDashedBorder(
-    width: androidx.compose.ui.unit.Dp,
-    color: Color,
-    cornerRadiusDp: androidx.compose.ui.unit.Dp
-) = drawBehind {
-    val stroke = Stroke(
-        width = width.toPx(),
-        pathEffect = PathEffect.dashPathEffect(floatArrayOf(10f, 10f), 0f)
-    )
-    drawRoundRect(color = color, style = stroke, cornerRadius = CornerRadius(cornerRadiusDp.toPx()))
 }
