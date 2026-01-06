@@ -39,7 +39,7 @@ import com.jeruk.alp_frontend.ui.viewmodel.ProductViewModel
 import java.text.NumberFormat
 import java.util.Locale
 
-// 🔥 PENTING: Import komponen BottomSheet yang baru dibuat di File 1
+// Pastikan import BottomSheet benar
 import com.jeruk.alp_frontend.ui.view.Component.ProductDetailBottomSheet
 
 @Composable
@@ -59,7 +59,7 @@ fun ProductMenuView(
     var searchQuery by remember { mutableStateOf("") }
     var selectedCategoryId by remember { mutableStateOf<Int?>(null) }
 
-    // 🔥 STATE UNTUK POPUP 🔥
+    // State Popup
     var showBottomSheet by remember { mutableStateOf(false) }
     var selectedProduct by remember { mutableStateOf<Product?>(null) }
 
@@ -68,12 +68,25 @@ fun ProductMenuView(
         productViewModel.getAllProducts(token)
     }
 
-    val filteredProducts = remember(products, searchQuery, selectedCategoryId, tokoId) {
-        products.filter { product ->
-            val belongToStore = product.tokoIds.contains(tokoId)
+    // 🔥 BARU 1: Ambil dulu semua produk milik toko ini
+    val storeProducts = remember(products, tokoId) {
+        products.filter { it.tokoIds.contains(tokoId) }
+    }
+
+    // 🔥 BARU 2: Filter Kategori
+    // Logikanya: Hanya simpan kategori jika ada minimal 1 produk di storeProducts yang punya kategori ID tersebut
+    val availableCategories = remember(categories, storeProducts) {
+        categories.filter { category ->
+            storeProducts.any { product -> product.categoryId == category.id }
+        }
+    }
+
+    // Filter Produk Akhir (Berdasarkan Search & Kategori yang dipilih)
+    val filteredProducts = remember(storeProducts, searchQuery, selectedCategoryId) {
+        storeProducts.filter { product ->
             val matchSearch = product.name.contains(searchQuery, ignoreCase = true)
             val matchCategory = selectedCategoryId == null || product.categoryId == selectedCategoryId
-            belongToStore && matchSearch && matchCategory
+            matchSearch && matchCategory
         }
     }
 
@@ -88,8 +101,9 @@ fun ProductMenuView(
             Spacer(modifier = Modifier.height(16.dp))
 
             // Filter Kategori
+            // 🔥 UPDATE: Gunakan 'availableCategories' bukan 'categories' mentah
             CategoryFilterSection(
-                categories = categories,
+                categories = availableCategories,
                 selectedId = selectedCategoryId,
                 onSelect = { selectedCategoryId = it }
             )
@@ -103,7 +117,9 @@ fun ProductMenuView(
                 }
             } else if (filteredProducts.isEmpty()) {
                 Box(Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
-                    Text("Menu tidak ditemukan", color = Color.Gray)
+                    // Pesan beda jika karena search atau memang toko kosong
+                    val msg = if (storeProducts.isEmpty()) "Toko ini belum memiliki menu" else "Menu tidak ditemukan"
+                    Text(msg, color = Color.Gray)
                 }
             } else {
                 LazyVerticalGrid(
@@ -116,7 +132,6 @@ fun ProductMenuView(
                         val catName = categories.find { it.id == product.categoryId }?.name ?: "Menu"
 
                         ProductGridItem(product = product, categoryName = catName) {
-                            // 🔥 TRIGGER POPUP 🔥
                             selectedProduct = product
                             showBottomSheet = true
                         }
@@ -126,7 +141,7 @@ fun ProductMenuView(
             }
         }
 
-        // 🔥 PANGGIL POPUP (BOTTOM SHEET) 🔥
+        // Popup Bottom Sheet
         if (showBottomSheet && selectedProduct != null) {
             val categoryName = categories.find { it.id == selectedProduct!!.categoryId }?.name ?: "Menu"
 
@@ -136,7 +151,6 @@ fun ProductMenuView(
                     selectedProduct = null
                 },
                 onAddToCart = { quantity ->
-                    // LOGIKA ADD TO CART DISINI
                     android.util.Log.d("Cart", "Add ${selectedProduct!!.name} qty: $quantity")
                     showBottomSheet = false
                 },
@@ -144,13 +158,13 @@ fun ProductMenuView(
                 productPrice = selectedProduct!!.price,
                 productDescription = selectedProduct!!.description,
                 productCategory = categoryName,
-                imageUrl = selectedProduct!!.imageUrl // Kirim URL Gambar
+                imageUrl = selectedProduct!!.imageUrl
             )
         }
     }
 }
 
-// --- KOMPONEN PENDUKUNG (Search, Chip, Card) ---
+// --- KOMPONEN PENDUKUNG (TIDAK ADA PERUBAHAN) ---
 @Composable
 fun SearchBarComponent(query: String, onQueryChange: (String) -> Unit) {
     val focusManager = LocalFocusManager.current

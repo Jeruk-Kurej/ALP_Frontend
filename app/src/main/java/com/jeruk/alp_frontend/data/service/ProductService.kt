@@ -30,11 +30,8 @@ interface ProductService {
         @Part("name") name: RequestBody,
         @Part("description") description: RequestBody,
         @Part("price") price: RequestBody,
-
-        // 👇 PERBAIKAN: Ganti "category_id" jadi "categoryId"
-        @Part("categoryId") categoryId: RequestBody,
-
-        @Part("toko_ids") tokoIds: RequestBody?, // (Lihat catatan di bawah soal ini)
+        @Part("categoryId") categoryId: RequestBody, // ✅ Ini sudah benar (camelCase)
+        @Part("toko_ids") tokoIds: RequestBody?,
         @Part image: MultipartBody.Part?
     ): Response<CreateProduct>
 
@@ -46,7 +43,10 @@ interface ProductService {
         @Part("name") name: RequestBody,
         @Part("description") description: RequestBody,
         @Part("price") price: RequestBody,
-        @Part("category_id") categoryId: RequestBody,
+
+        // 🔥 PERBAIKAN DI SINI: Ganti "category_id" menjadi "categoryId"
+        @Part("categoryId") categoryId: RequestBody,
+
         @Part("toko_ids") tokoIds: RequestBody?,
         @Part image: MultipartBody.Part?
     ): Response<UpdateProductById>
