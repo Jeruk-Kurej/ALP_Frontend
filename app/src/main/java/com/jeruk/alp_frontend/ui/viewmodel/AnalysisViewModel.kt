@@ -177,14 +177,18 @@ class AnalysisViewModel : ViewModel() {
         val ordersToday = filteredByToko.filter { order ->
             try {
                 // Extract date from createdAt (format: "2024-01-07T10:30:00Z" or "2024-01-07")
-                val orderDate = if (order.createdAt.contains("T")) {
-                    order.createdAt.substring(0, 10) // Ambil YYYY-MM-DD
+                val orderDate = if (order.createDate.contains("T")) {
+                    order.createDate.substring(0, 10) // Ambil YYYY-MM-DD
                 } else {
-                    order.createdAt.take(10)
+                    order.createDate.take(10)
                 }
                 orderDate == todayStr
             } catch (e: Exception) {
-                android.util.Log.e("AnalysisViewModel", "Error parsing date: ${order.createdAt}", e)
+                android.util.Log.e(
+                    "AnalysisViewModel",
+                    "Error parsing date: ${order.createDate}",
+                    e
+                )
                 false
             }
         }
@@ -204,7 +208,10 @@ class AnalysisViewModel : ViewModel() {
     fun calculateTopProducts(token: String) {
         viewModelScope.launch {
             try {
-                val orders = if (allOrdersCache.isNotEmpty()) allOrdersCache else orderRepository.getAllOrders(token)
+                val orders =
+                    if (allOrdersCache.isNotEmpty()) allOrdersCache else orderRepository.getAllOrders(
+                        token
+                    )
                 val productMap = mutableMapOf<Int, TopProductResult>()
 
                 orders.forEach { order ->
@@ -242,7 +249,7 @@ class AnalysisViewModel : ViewModel() {
     private fun calculateRevenueByPeriod(orders: List<Order>, period: TimePeriod): Double {
         val calendar = Calendar.getInstance()
         val currentDate = calendar.time
-        
+
         // Calculate cutoff date based on period
         calendar.time = currentDate
         when (period) {
@@ -252,9 +259,9 @@ class AnalysisViewModel : ViewModel() {
             TimePeriod.YEAR -> calendar.add(Calendar.YEAR, -1)
         }
         val cutoffDate = calendar.time
-        
+
         val dateFormat = SimpleDateFormat("yyyy-MM-dd", Locale.getDefault())
-        
+
         return orders.filter { order ->
             try {
                 val orderDate = dateFormat.parse(order.createDate.substring(0, 10))
@@ -286,59 +293,65 @@ class AnalysisViewModel : ViewModel() {
     fun calculateDailyRevenue(token: String) {
         viewModelScope.launch {
             try {
-                val orders = if (allOrdersCache.isNotEmpty()) allOrdersCache else orderRepository.getAllOrders(token)
+                val orders =
+                    if (allOrdersCache.isNotEmpty()) allOrdersCache else orderRepository.getAllOrders(
+                        token
+                    )
                 val dateFormat = SimpleDateFormat("yyyy-MM-dd", Locale.getDefault())
                 val dayFormat = SimpleDateFormat("EEE", Locale("id", "ID"))
                 val monthFormat = SimpleDateFormat("MMM", Locale("id", "ID"))
-                
+
                 val calendar = Calendar.getInstance()
                 val currentDate = calendar.time
-                
+
                 // For MONTH and YEAR periods, group by month instead of day
                 if (_selectedPeriod.value == TimePeriod.MONTH || _selectedPeriod.value == TimePeriod.YEAR) {
                     val numMonths = if (_selectedPeriod.value == TimePeriod.YEAR) 12 else 12
                     val revenueByMonth = mutableMapOf<String, Double>()
-                    
+
                     // Initialize all months with 0
                     for (i in 0 until numMonths) {
                         calendar.time = currentDate
                         calendar.add(Calendar.MONTH, -(numMonths - 1 - i))
-                        val monthKey = SimpleDateFormat("yyyy-MM", Locale.getDefault()).format(calendar.time)
+                        val monthKey =
+                            SimpleDateFormat("yyyy-MM", Locale.getDefault()).format(calendar.time)
                         revenueByMonth[monthKey] = 0.0
                     }
-                    
+
                     // Calculate actual revenue per month
                     orders.forEach { order ->
                         try {
                             val orderDateStr = order.createDate.substring(0, 7) // yyyy-MM
                             if (revenueByMonth.containsKey(orderDateStr)) {
-                                val revenue = order.orderItems.sumOf { item -> 
-                                    item.orderAmount * item.productPrice 
+                                val revenue = order.orderItems.sumOf { item ->
+                                    item.orderAmount * item.productPrice
                                 }.toDouble()
-                                revenueByMonth[orderDateStr] = revenueByMonth[orderDateStr]!! + revenue
+                                revenueByMonth[orderDateStr] =
+                                    revenueByMonth[orderDateStr]!! + revenue
                             }
                         } catch (e: Exception) {
                             // Skip invalid dates
                         }
                     }
-                    
+
                     // Convert to list with month labels
-                    val result = revenueByMonth.entries.sortedBy { it.key }.mapIndexed { index, entry ->
-                        val monthLabel = (index + 1).toString() // "1", "2", "3", ..., "12"
-                        
-                        DailyRevenue(
-                            date = entry.key,
-                            revenue = entry.value,
-                            dayLabel = monthLabel
-                        )
-                    }
-                    
+                    val result =
+                        revenueByMonth.entries.sortedBy { it.key }.mapIndexed { index, entry ->
+                            val monthLabel = (index + 1).toString() // "1", "2", "3", ..., "12"
+
+                            DailyRevenue(
+                                date = entry.key,
+                                revenue = entry.value,
+                                dayLabel = monthLabel
+                            )
+                        }
+
                     _dailyRevenue.value = result
                 } else {
                     // For DAY and WEEK periods, show daily data
                     val numDays = if (_selectedPeriod.value == TimePeriod.DAY) 7 else 7
                     val revenueByDate = mutableMapOf<String, Double>()
-                    
+
                     // Initialize all dates with 0
                     for (i in 0 until numDays) {
                         calendar.time = currentDate
@@ -346,41 +359,43 @@ class AnalysisViewModel : ViewModel() {
                         val dateStr = dateFormat.format(calendar.time)
                         revenueByDate[dateStr] = 0.0
                     }
-                    
+
                     // Calculate actual revenue per date
                     orders.forEach { order ->
                         try {
                             val orderDateStr = order.createDate.substring(0, 10)
                             if (revenueByDate.containsKey(orderDateStr)) {
-                                val revenue = order.orderItems.sumOf { item -> 
-                                    item.orderAmount * item.productPrice 
+                                val revenue = order.orderItems.sumOf { item ->
+                                    item.orderAmount * item.productPrice
                                 }.toDouble()
-                                revenueByDate[orderDateStr] = revenueByDate[orderDateStr]!! + revenue
+                                revenueByDate[orderDateStr] =
+                                    revenueByDate[orderDateStr]!! + revenue
                             }
                         } catch (e: Exception) {
                             // Skip invalid dates
                         }
                     }
-                    
+
                     // Convert to list with day labels
-                    val result = revenueByDate.entries.sortedBy { it.key }.mapIndexed { index, entry ->
-                        val date = dateFormat.parse(entry.key)
-                        val dayLabel = if (date != null) {
-                            dayFormat.format(date).take(3).capitalize()
-                        } else {
-                            "Day $index"
+                    val result =
+                        revenueByDate.entries.sortedBy { it.key }.mapIndexed { index, entry ->
+                            val date = dateFormat.parse(entry.key)
+                            val dayLabel = if (date != null) {
+                                dayFormat.format(date).take(3).capitalize()
+                            } else {
+                                "Day $index"
+                            }
+
+                            DailyRevenue(
+                                date = entry.key,
+                                revenue = entry.value,
+                                dayLabel = dayLabel
+                            )
                         }
-                        
-                        DailyRevenue(
-                            date = entry.key,
-                            revenue = entry.value,
-                            dayLabel = dayLabel
-                        )
-                    }
-                    
+
                     _dailyRevenue.value = result
                 }
-                
+
             } catch (e: Exception) {
                 println("Error calculating daily revenue: ${e.message}")
             }
@@ -391,22 +406,28 @@ class AnalysisViewModel : ViewModel() {
     fun calculateCategorySales(token: String) {
         viewModelScope.launch {
             try {
-                val orders = if (allOrdersCache.isNotEmpty()) allOrdersCache else orderRepository.getAllOrders(token)
-                val products = if (allProductsCache.isNotEmpty()) allProductsCache else productRepository.getAllProducts(token)
-                
+                val orders =
+                    if (allOrdersCache.isNotEmpty()) allOrdersCache else orderRepository.getAllOrders(
+                        token
+                    )
+                val products =
+                    if (allProductsCache.isNotEmpty()) allProductsCache else productRepository.getAllProducts(
+                        token
+                    )
+
                 // Create product ID to category name map
                 val productCategoryMap = products.associate { it.id to it.categoryName }
-                
+
                 // Filter orders based on selected time period
                 val filteredOrders = filterOrdersByPeriod(orders, _selectedPeriod.value)
-                
+
                 val catMap = mutableMapOf<String, Double>()
 
                 filteredOrders.forEach { order ->
                     order.orderItems.forEach { item ->
                         // Get actual category name from product
                         val catName = productCategoryMap[item.productId] ?: "Lainnya"
-                        
+
                         val revenue = item.orderAmount * item.productPrice.toDouble()
                         val currentTotal = catMap.getOrDefault(catName, 0.0)
                         catMap[catName] = currentTotal + revenue
@@ -428,7 +449,7 @@ class AnalysisViewModel : ViewModel() {
     private fun filterOrdersByPeriod(orders: List<Order>, period: TimePeriod): List<Order> {
         val calendar = Calendar.getInstance()
         val currentDate = calendar.time
-        
+
         calendar.time = currentDate
         when (period) {
             TimePeriod.DAY -> calendar.add(Calendar.DAY_OF_YEAR, -1)
@@ -437,9 +458,9 @@ class AnalysisViewModel : ViewModel() {
             TimePeriod.YEAR -> calendar.add(Calendar.YEAR, -1)
         }
         val cutoffDate = calendar.time
-        
+
         val dateFormat = SimpleDateFormat("yyyy-MM-dd", Locale.getDefault())
-        
+
         return orders.filter { order ->
             try {
                 val orderDate = dateFormat.parse(order.createDate.substring(0, 10))
