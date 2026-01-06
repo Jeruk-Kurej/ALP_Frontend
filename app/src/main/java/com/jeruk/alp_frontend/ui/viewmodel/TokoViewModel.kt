@@ -14,8 +14,6 @@ import java.io.File
 class TokoViewModel : ViewModel() {
 
     private val repository = AppContainer.tokoRepository
-    // productRepository tidak lagi dibutuhkan untuk updateToko,
-    // tapi mungkin butuh untuk fitur lain, jadi biarkan saja kalau mau.
 
     // States
     private val _isLoading = MutableStateFlow(false)
@@ -36,6 +34,7 @@ class TokoViewModel : ViewModel() {
     fun getMyTokos(token: String) {
         viewModelScope.launch {
             _isLoading.value = true
+            _errorMessage.value = null
             try {
                 val result = repository.getMyTokos(token)
                 _tokos.value = result
@@ -51,10 +50,12 @@ class TokoViewModel : ViewModel() {
     fun getTokoById(token: String, id: Int) {
         viewModelScope.launch {
             _isLoading.value = true
+            _errorMessage.value = null
             try {
                 _currentToko.value = repository.getTokoById(token, id)
             } catch (e: Exception) {
-                Log.e("TOKO_VM", "Error: ${e.message}")
+                Log.e("TOKO_VM", "Error Detail: ${e.message}")
+                _errorMessage.value = "Gagal memuat detail toko"
             } finally {
                 _isLoading.value = false
             }
@@ -69,16 +70,15 @@ class TokoViewModel : ViewModel() {
             try {
                 repository.createToko(token, name, description, location, imageFile)
                 _isSuccess.value = true
-                getMyTokos(token)
+                getMyTokos(token) // Refresh list otomatis
             } catch (e: Exception) {
-                _errorMessage.value = e.message
+                _errorMessage.value = "Gagal membuat toko: ${e.message}"
             } finally {
                 _isLoading.value = false
             }
         }
     }
 
-    // 👇 LOGIC UPDATE YANG JAUH LEBIH BERSIH
     fun updateToko(
         token: String,
         id: Int,
@@ -86,17 +86,14 @@ class TokoViewModel : ViewModel() {
         desc: String,
         loc: String,
         file: File?,
-        selectedProductIds: List<Int> // List ID dari UI
+        selectedProductIds: List<Int>
     ) {
         viewModelScope.launch {
             _isLoading.value = true
             _errorMessage.value = null
             _isSuccess.value = false
             try {
-                // Kita panggil Repo updateToko yang baru
-                // Repo akan kirim data + List productIds ke Backend sekaligus
                 repository.updateToko(token, id, name, desc, loc, file, selectedProductIds)
-
                 _isSuccess.value = true
 
                 // Refresh data
@@ -105,7 +102,7 @@ class TokoViewModel : ViewModel() {
 
             } catch (e: Exception) {
                 Log.e("TOKO_VM", "Gagal update: ${e.message}")
-                _errorMessage.value = e.message
+                _errorMessage.value = "Gagal update: ${e.message}"
                 _isSuccess.value = false
             } finally {
                 _isLoading.value = false
@@ -119,7 +116,11 @@ class TokoViewModel : ViewModel() {
             _errorMessage.value = null
             try {
                 repository.deleteToko(token, tokoId)
-                getMyTokos(token)
+                // Hapus dari list lokal supaya UI langsung update
+                val currentList = _tokos.value.toMutableList()
+                currentList.removeAll { it.id == tokoId }
+                _tokos.value = currentList
+
             } catch (e: Exception) {
                 Log.e("TOKO_VM", "Gagal hapus toko: ${e.message}")
                 _errorMessage.value = "Gagal menghapus toko: ${e.message}"

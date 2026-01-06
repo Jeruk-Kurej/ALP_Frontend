@@ -29,6 +29,7 @@ import androidx.lifecycle.LifecycleEventObserver
 import androidx.lifecycle.viewmodel.compose.viewModel
 import androidx.navigation.NavController
 import coil.compose.AsyncImage
+import coil.compose.AsyncImagePainter
 import com.jeruk.alp_frontend.ui.model.Category
 import com.jeruk.alp_frontend.ui.model.Product
 import com.jeruk.alp_frontend.ui.route.AppView // Import AppView
@@ -363,8 +364,24 @@ fun ProductCard(
                     contentDescription = product.name,
                     modifier = Modifier
                         .size(80.dp)
-                        .clip(RoundedCornerShape(12.dp)),
-                    contentScale = ContentScale.Crop
+                        .clip(RoundedCornerShape(12.dp))
+                        .background(Color.LightGray),
+                    contentScale = ContentScale.Crop,
+
+                    // --- BAGIAN INI YANG DIPERBAIKI ---
+                    onState = { state ->
+                        // Gunakan 'AsyncImagePainter.State' (milik Coil)
+                        if (state is AsyncImagePainter.State.Error) {
+                            // Ini akan print errornya ke Logcat (tab Logcat di bawah)
+                            // Filter Logcat dengan kata kunci: "IMAGE_DEBUG"
+                            println("IMAGE_DEBUG: Gagal load ${product.imageUrl}")
+                            println("IMAGE_DEBUG: Penyebab -> ${state.result.throwable.message}")
+                        }
+
+                        if (state is AsyncImagePainter.State.Success) {
+                            println("IMAGE_DEBUG: Berhasil load ${product.imageUrl}")
+                        }
+                    }
                 )
             } else {
                 Box(

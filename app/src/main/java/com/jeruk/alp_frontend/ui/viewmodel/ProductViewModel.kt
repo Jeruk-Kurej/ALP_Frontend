@@ -36,45 +36,76 @@ class ProductViewModel : ViewModel() {
     private val _successMessage = MutableStateFlow<String?>(null)
     val successMessage: StateFlow<String?> = _successMessage.asStateFlow()
 
-    // 🔥 BARU: State Cart (Menyimpan ProductID dan Quantity)
+    // 4. Cart State
     private val _cartItems = MutableStateFlow<Map<Int, Int>>(emptyMap())
     val cartItems: StateFlow<Map<Int, Int>> = _cartItems.asStateFlow()
 
-    // 🔥 BARU: Fungsi Tambah ke Cart
-    fun addToCart(product: Product, quantity: Int) {
-        val currentCart = _cartItems.value.toMutableMap()
 
-        // Cek jika produk sudah ada, tambahkan quantity-nya, jika belum set baru
-        val currentQty = currentCart[product.id] ?: 0
-        currentCart[product.id] = currentQty + quantity
-
-        _cartItems.value = currentCart
-        Log.d("ProductVM", "Cart Updated: ${_cartItems.value}")
+    // --- SECURITY & CLEANUP (PENTING UNTUK LOGOUT) ---
+    // Panggil fungsi ini saat User menekan tombol LOGOUT
+    fun resetState() {
+        _products.value = emptyList()
+        _cartItems.value = emptyMap() // Hapus keranjang
+        _selectedProduct.value = null
+        _errorMessage.value = null
+        _successMessage.value = null
+        _isSuccess.value = false
     }
 
+
     // -----------------------------------------------------------
-    // FUNCTION: GET ALL PRODUCTS
+    // CART LOGIC
     // -----------------------------------------------------------
+    fun addToCart(product: Product, quantity: Int) {
+        val currentCart = _cartItems.value.toMutableMap()
+        val currentQty = currentCart[product.id] ?: 0
+        currentCart[product.id] = currentQty + quantity
+        _cartItems.value = currentCart
+    }
+
+    fun updateCart(product: Product, quantity: Int) {
+        val currentCart = _cartItems.value.toMutableMap()
+        if (quantity > 0) {
+            currentCart[product.id] = quantity
+        } else {
+            currentCart.remove(product.id)
+        }
+        _cartItems.value = currentCart
+    }
+
+    fun removeFromCart(product: Product) {
+        val currentCart = _cartItems.value.toMutableMap()
+        currentCart.remove(product.id)
+        _cartItems.value = currentCart
+    }
+
+    fun clearCart() {
+        _cartItems.value = emptyMap()
+    }
+
+
+    // -----------------------------------------------------------
+    // API CALLS
+    // -----------------------------------------------------------
+
     fun getAllProducts(token: String) {
         viewModelScope.launch {
             _isLoading.value = true
             _errorMessage.value = null
             try {
-                Log.d("ProductViewModel", "Fetching all products...")
+                // NOTE: Pastikan Repository TIDAK menempelkan BASE_URL lagi
+                // Karena Cloudinary sudah memberikan URL lengkap (https://...)
                 val result = repository.getAllProducts(token)
                 _products.value = result
             } catch (e: Exception) {
                 _errorMessage.value = "Gagal memuat produk: ${e.message}"
-                Log.e("ProductViewModel", "Error fetch products", e)
+                Log.e("ProductVM", "Error fetch products", e)
             } finally {
                 _isLoading.value = false
             }
         }
     }
 
-    // -----------------------------------------------------------
-    // FUNCTION: GET BY ID
-    // -----------------------------------------------------------
     fun getProductById(token: String, productId: Int) {
         viewModelScope.launch {
             _isLoading.value = true
@@ -91,9 +122,6 @@ class ProductViewModel : ViewModel() {
         }
     }
 
-    // -----------------------------------------------------------
-    // FUNCTION: CREATE PRODUCT
-    // -----------------------------------------------------------
     fun createProduct(
         token: String, name: String, description: String, price: Int,
         categoryId: Int, tokoIds: String, imageFile: File?
@@ -107,7 +135,7 @@ class ProductViewModel : ViewModel() {
                 repository.createProduct(token, name, description, price, categoryId, tokoIds, imageFile)
                 _successMessage.value = "Produk berhasil dibuat"
                 _isSuccess.value = true
-                getAllProducts(token)
+                getAllProducts(token) // Refresh list
             } catch (e: Exception) {
                 _errorMessage.value = "Gagal: ${e.message}"
                 _isSuccess.value = false
@@ -117,9 +145,6 @@ class ProductViewModel : ViewModel() {
         }
     }
 
-    // -----------------------------------------------------------
-    // FUNCTION: UPDATE PRODUCT
-    // -----------------------------------------------------------
     fun updateProduct(
         token: String, productId: Int, name: String, description: String,
         price: Int, categoryId: Int, tokoIds: String, imageFile: File?
@@ -133,9 +158,9 @@ class ProductViewModel : ViewModel() {
                 _selectedProduct.value = result
                 _successMessage.value = "Produk berhasil diperbarui"
                 _isSuccess.value = true
-                getAllProducts(token)
+                getAllProducts(token) // Refresh list
             } catch (e: Exception) {
-                _errorMessage.value = "Gagal update produk: ${e.message}"
+                _errorMessage.value = "Gagal update: ${e.message}"
                 _isSuccess.value = false
             } finally {
                 _isLoading.value = false
@@ -143,9 +168,6 @@ class ProductViewModel : ViewModel() {
         }
     }
 
-    // -----------------------------------------------------------
-    // FUNCTION: DELETE PRODUCT
-    // -----------------------------------------------------------
     fun deleteProduct(token: String, productId: Int) {
         viewModelScope.launch {
             _isLoading.value = true
@@ -153,9 +175,12 @@ class ProductViewModel : ViewModel() {
             try {
                 val message = repository.deleteProduct(token, productId)
                 _successMessage.value = message
+
+                // Hapus item dari list lokal supaya UI langsung update tanpa loading ulang
                 val currentList = _products.value.toMutableList()
                 currentList.removeAll { it.id == productId }
                 _products.value = currentList
+
             } catch (e: Exception) {
                 _errorMessage.value = "Gagal menghapus: ${e.message}"
             } finally {
@@ -168,29 +193,5 @@ class ProductViewModel : ViewModel() {
         _errorMessage.value = null
         _successMessage.value = null
         _isSuccess.value = false
-        _selectedProduct.value = null
     }
-
-    fun updateCart(product: Product, quantity: Int) {
-        val currentCart = _cartItems.value.toMutableMap()
-        if (quantity > 0) {
-            currentCart[product.id] = quantity
-        } else {
-            currentCart.remove(product.id)
-        }
-        _cartItems.value = currentCart
-    }
-
-    // Fungsi hapus item total
-    fun removeFromCart(product: Product) {
-        val currentCart = _cartItems.value.toMutableMap()
-        currentCart.remove(product.id)
-        _cartItems.value = currentCart
-    }
-
-    // Fungsi checkout (reset keranjang)
-    fun clearCart() {
-        _cartItems.value = emptyMap()
-    }
-
 }

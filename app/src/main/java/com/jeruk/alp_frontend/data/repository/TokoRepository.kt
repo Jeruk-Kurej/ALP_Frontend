@@ -11,7 +11,7 @@ import java.io.File
 
 class TokoRepository(
     private val service: TokoService,
-    private val baseUrl: String
+    private val baseUrl: String // Masih disimpan tapi tidak dipakai untuk Image
 ) {
 
     private fun formatToken(token: String): String =
@@ -30,14 +30,19 @@ class TokoRepository(
     suspend fun getTokoById(token: String, tokoId: Int): Toko {
         val response = service.getTokoById(formatToken(token), tokoId)
         if (!response.isSuccessful) throw Exception("Gagal ambil data: ${response.code()}")
+
         val item = response.body()!!.data
+
         return Toko(
-            item.id,
-            item.name ?: "",
-            item.description ?: "",
-            item.location ?: "",
-            if (item.image != null) "$baseUrl${item.image}" else "",
-            item.is_open
+            id = item.id,
+            name = item.name ?: "",
+            description = item.description ?: "",
+            address = item.location ?: "",
+            // 🔥 PERBAIKAN UTAMA DI SINI:
+            // 1. Hapus "$baseUrl"
+            // 2. Tambah .toString() agar aman dari error Type Mismatch
+            imageUrl = item.image?.toString() ?: "",
+            isOpen = item.is_open // Pastikan nama variabel di Model Toko sesuai (isOpen atau is_open)
         )
     }
 
@@ -60,7 +65,6 @@ class TokoRepository(
         else throw Exception("Gagal Simpan: ${response.errorBody()?.string()}")
     }
 
-    // 👇 BAGIAN INI SUDAH DIPERBAIKI
     suspend fun updateToko(
         token: String,
         id: Int,
@@ -68,18 +72,16 @@ class TokoRepository(
         desc: String,
         loc: String,
         imageFile: File?,
-        productIds: List<Int> // Menerima List ID Produk
+        productIds: List<Int>
     ): Toko {
         val textType = "text/plain".toMediaTypeOrNull()
 
-        // 1. Siapkan data text
         val namePart = name.toRequestBody(textType)
         val descPart = desc.toRequestBody(textType)
-        val locPart = loc.toRequestBody(textType) // Pastikan Service pakai @Part("address") atau "location" sesuai backend
+        val locPart = loc.toRequestBody(textType)
         val imagePart = prepareImagePart(imageFile)
 
-        // 2. Siapkan List ID Produk untuk Multipart
-        // Ini mengubah [1, 2, 3] menjadi Multipart Part berulang
+        // Kirim List ID Produk sebagai Multipart berulang
         val productIdsParts = ArrayList<MultipartBody.Part>()
         for (productId in productIds) {
             productIdsParts.add(
@@ -87,14 +89,13 @@ class TokoRepository(
             )
         }
 
-        // 3. Panggil Service
         val response = service.updateToko(
             formatToken(token),
             id,
             namePart,
             descPart,
             locPart,
-            productIdsParts, // Kirim list part
+            productIdsParts,
             imagePart
         )
 
@@ -105,19 +106,22 @@ class TokoRepository(
     suspend fun getMyTokos(token: String): List<Toko> {
         val response = service.getAllMyTokos(formatToken(token))
         if (!response.isSuccessful) return emptyList()
+
         return response.body()!!.data.map { item ->
             Toko(
-                item.id,
-                item.name ?: "",
-                item.description ?: "",
-                item.location ?: "",
-                if (item.image != null) "$baseUrl${item.image}" else "",
-                item.is_open
+                id = item.id,
+                name = item.name ?: "",
+                description = item.description ?: "",
+                address = item.location ?: "",
+                // 🔥 PERBAIKAN DISINI JUGA:
+                imageUrl = item.image?.toString() ?: "",
+                isOpen = item.is_open
             )
         }
     }
 
     suspend fun deleteToko(token: String, id: Int) {
-        service.deleteToko(formatToken(token), id)
+        val response = service.deleteToko(formatToken(token), id)
+        if (!response.isSuccessful) throw Exception("Gagal hapus toko")
     }
 }

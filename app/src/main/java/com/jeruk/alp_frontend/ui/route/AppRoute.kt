@@ -28,6 +28,8 @@ import androidx.navigation.NavHostController
 import androidx.navigation.NavType
 import androidx.navigation.compose.*
 import androidx.navigation.navArgument
+
+// Import semua View kamu
 import com.jeruk.alp_frontend.ui.view.Analysis.AnalysisPageView
 import com.jeruk.alp_frontend.ui.view.Analysis.AnalysisDetailView
 import com.jeruk.alp_frontend.ui.view.Auth.LoginView
@@ -94,17 +96,23 @@ enum class AppView(
     AddProduct("Tambah Produk"),
     UpdateProduct("Edit Produk"),
     AddCategory("Tambah Kategori"),
-    UpdateCategory("Edit Kategori")
+    UpdateCategory("Edit Kategori"),
+
+    // Tambahan untuk mapping dari MainActivity (Opsional, jika kamu pakai nama ini di MainActivity)
+    AdminHome("Dashboard Admin"),
+    WaiterHome("Home Waiter")
 }
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
-fun AppRoute() {
+fun AppRoute(
+    // 🔥 PERBAIKAN UTAMA: Tambah parameter ini
+    startDestination: String = AppView.Welcoming.name
+) {
     val navController = rememberNavController()
 
     // --- VIEWMODELS ---
     val authViewModel: AuthViewModel = viewModel()
-    // 🔥 PENTING: Inisialisasi di sini agar Cart data tersimpan saat pindah page
     val productViewModel: ProductViewModel = viewModel()
     val orderViewModel: OrderViewModel = viewModel()
 
@@ -117,7 +125,7 @@ fun AppRoute() {
         AppView.Analysis.name, AppView.AdminToko.name, AppView.AdminProduk.name,
         AppView.AnalysisDetail.name, AppView.CreateToko.name, AppView.UpdateToko.name,
         AppView.AddProduct.name, AppView.UpdateProduct.name, AppView.AddCategory.name,
-        AppView.UpdateCategory.name
+        AppView.UpdateCategory.name, AppView.AdminHome.name
     )
     val waiterRoutes = listOf(
         AppView.Home.name,
@@ -126,7 +134,8 @@ fun AppRoute() {
         AppView.PaymentPage.name,
         AppView.QRISPage.name,
         AppView.CashPage.name,
-        AppView.SuccessPage.name
+        AppView.SuccessPage.name,
+        AppView.WaiterHome.name
     )
 
     var isUserInAdminMode by remember { mutableStateOf(false) }
@@ -140,21 +149,23 @@ fun AppRoute() {
         }
     }
 
+    // List halaman utama yang menampilkan Bottom Bar
     val rootPages = listOf(
         AppView.Home.name, AppView.Analysis.name, AppView.AdminToko.name,
-        AppView.AdminProduk.name, AppView.Setting.name
+        AppView.AdminProduk.name, AppView.Setting.name,
+        // Mapping tambahan jika diperlukan
+        AppView.AdminHome.name, AppView.WaiterHome.name
     )
 
     val canNavigateBack = currentRoute !in rootPages && navController.previousBackStackEntry != null
 
     Scaffold(
         topBar = {
-            // PERBAIKAN 1: Tambahkan SuccessPage di sini agar Header TIDAK MUNCUL
             val noHeaderPages = listOf(
                 AppView.Welcoming.name,
                 AppView.Login.name,
                 AppView.Register.name,
-                AppView.SuccessPage.name // <--- TopBar disembunyikan di halaman Success
+                AppView.SuccessPage.name
             )
             val currentBaseRoute = currentRoute?.split("/")?.first()
 
@@ -194,7 +205,8 @@ fun AppRoute() {
     ) { innerPadding ->
         NavHost(
             navController = navController,
-            startDestination = AppView.Welcoming.name,
+            // 🔥 PERBAIKAN UTAMA: Gunakan parameter startDestination disini
+            startDestination = startDestination,
             modifier = Modifier.padding(innerPadding)
         ) {
             // --- AUTHENTICATION ---
@@ -205,7 +217,12 @@ fun AppRoute() {
             composable(AppView.Login.name) {
                 LoginView(
                     authViewModel = authViewModel,
-                    onLoginSuccess = { navController.navigate(AppView.Home.name) },
+                    // Redirect Login sesuai role
+                    onLoginSuccess = {
+                        // Cek role manual di sini jika login manual
+                        val target = if(authViewModel.userState.value.role == "admin") AppView.Analysis.name else AppView.Home.name
+                        navController.navigate(target)
+                    },
                     onNavigateToRegister = { navController.navigate(AppView.Register.name) }
                 )
             }
@@ -219,6 +236,11 @@ fun AppRoute() {
             }
 
             // --- WAITER MODE ---
+            // Mapping WaiterHome ke tampilan Home (TokoView)
+            composable(AppView.WaiterHome.name) {
+                TokoView(token = userState.token, navController = navController)
+            }
+
             composable(AppView.Home.name) {
                 TokoView(token = userState.token, navController = navController)
             }
@@ -239,7 +261,7 @@ fun AppRoute() {
                     token = userState.token,
                     tokoId = tokoId,
                     tokoName = tokoName,
-                    productViewModel = productViewModel // 🔥 Share ViewModel
+                    productViewModel = productViewModel
                 )
             }
 
@@ -314,9 +336,7 @@ fun AppRoute() {
             }
 
             composable(AppView.SuccessPage.name) {
-                // PERBAIKAN 2: Blokir tombol Back HP saat di halaman Sukses/Loading
                 BackHandler(enabled = true) {
-                    // Jika user tekan Back, paksa kembali ke Home (reset flow)
                     navController.navigate(AppView.Home.name) {
                         popUpTo(AppView.Home.name) { inclusive = true }
                     }
@@ -325,6 +345,11 @@ fun AppRoute() {
             }
 
             // --- ADMIN MODE ---
+            // Mapping AdminHome ke AnalysisView
+            composable(AppView.AdminHome.name) {
+                AnalysisPageView(navController, token = userState.token)
+            }
+
             composable(AppView.Analysis.name) {
                 AnalysisPageView(
                     navController,
@@ -332,11 +357,10 @@ fun AppRoute() {
                 )
             }
 
-            // --- FIX ERROR: Pass Token ke AnalysisDetailView ---
             composable(AppView.AnalysisDetail.name) {
                 AnalysisDetailView(
                     navController = navController,
-                    token = userState.token // <-- INI YANG DITAMBAHKAN
+                    token = userState.token
                 )
             }
 
@@ -412,6 +436,7 @@ fun AppRoute() {
                     SettingAdminView(
                         navController = navController,
                         onLogout = {
+                            authViewModel.logout() // Pastikan ViewModel juga logout
                             navController.navigate(AppView.Welcoming.name) {
                                 popUpTo(0) {
                                     inclusive = true
@@ -433,6 +458,7 @@ fun AppRoute() {
                     SettingView(
                         navController = navController,
                         onLogout = {
+                            authViewModel.logout()
                             navController.navigate(AppView.Welcoming.name) {
                                 popUpTo(0) {
                                     inclusive = true

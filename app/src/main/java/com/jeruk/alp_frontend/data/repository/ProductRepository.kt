@@ -11,15 +11,13 @@ import java.io.File
 
 class ProductRepository(
     private val service: ProductService,
-    private val baseUrl: String
+    private val baseUrl: String // Tetap ada tapi tidak dipakai untuk image
 ) {
 
-    // Helper 1: Format Token
     private fun formatToken(token: String): String {
         return if (token.startsWith("Bearer ")) token else "Bearer $token"
     }
 
-    // Helper 2: Siapkan Gambar
     private fun prepareImagePart(file: File?): MultipartBody.Part? {
         return file?.let {
             val extension = it.extension.lowercase()
@@ -42,11 +40,13 @@ class ProductRepository(
             Product(
                 id = item.id,
                 name = item.name,
-                description = item.description ?: "",
+                // Fix Warning: Hapus Elvis (?:) jika data sudah pasti String
+                description = item.description,
                 price = item.price,
-                imageUrl = if (item.image != null) "$baseUrl${item.image}" else "",
+                // 🔥 FIX ERROR: Tambahkan .toString() agar 'Any' berubah jadi 'String'
+                imageUrl = item.image?.toString() ?: "",
                 categoryId = item.category.id,
-                categoryName = item.category.name ?: "",
+                categoryName = item.category.name,
                 tokos = item.tokos.map { it.name },
                 tokoIds = item.tokos.map { it.id }
             )
@@ -65,11 +65,12 @@ class ProductRepository(
         return Product(
             id = item.id,
             name = item.name,
-            description = item.description ?: "",
+            description = item.description,
             price = item.price,
-            imageUrl = if (item.image != null) "$baseUrl${item.image}" else "",
+            // 🔥 FIX ERROR: Tambahkan .toString()
+            imageUrl = item.image?.toString() ?: "",
             categoryId = item.category.id,
-            categoryName = item.category.name ?: "",
+            categoryName = item.category.name,
             tokos = item.tokos.map { it.name },
             tokoIds = item.tokos.map { it.id }
         )
@@ -86,27 +87,19 @@ class ProductRepository(
     ): Product {
         val textType = "text/plain".toMediaTypeOrNull()
 
-        // 1. Siapkan data text
         val namePart = name.toRequestBody(textType)
         val descriptionPart = description.toRequestBody(textType)
-
-        // Backend melakukan parsing Number(), jadi aman kirim string angka
         val pricePart = price.toString().toRequestBody(textType)
         val categoryIdPart = categoryId.toString().toRequestBody(textType)
-
-        // 2. Siapkan Toko IDs (Optional)
         val tokoIdsPart = if (tokoIds.isBlank()) null else tokoIds.toRequestBody(textType)
-
-        // 3. Siapkan Image
         val imagePart = prepareImagePart(imageFile)
 
-        // 4. Kirim
         val response = service.createProduct(
             formatToken(token),
             namePart,
             descriptionPart,
             pricePart,
-            categoryIdPart, // <--- Kirim ini (sekarang labelnya sudah 'categoryId')
+            categoryIdPart,
             tokoIdsPart,
             imagePart
         )
@@ -116,11 +109,12 @@ class ProductRepository(
             return Product(
                 id = item.id,
                 name = item.name,
-                description = item.description ?: "",
+                description = item.description,
                 price = item.price,
-                imageUrl = if (item.image != null) "$baseUrl${item.image}" else "",
+                // 🔥 FIX ERROR: Tambahkan .toString()
+                imageUrl = item.image?.toString() ?: "",
                 categoryId = item.category.id,
-                categoryName = item.category.name ?: "",
+                categoryName = item.category.name,
                 tokos = item.tokos.map { it.name },
                 tokoIds = item.tokos.map { it.id }
             )
@@ -147,13 +141,7 @@ class ProductRepository(
         val descBody = description.toRequestBody(textType)
         val priceBody = price.toString().toRequestBody(textType)
         val categoryBody = categoryId.toString().toRequestBody(textType)
-
-        val tokoIdsBody = if (tokoIds.isNotEmpty()) {
-            tokoIds.toRequestBody(textType)
-        } else {
-            null
-        }
-
+        val tokoIdsBody = if (tokoIds.isNotEmpty()) tokoIds.toRequestBody(textType) else null
         val imagePart = prepareImagePart(imageFile)
 
         val response = service.updateProduct(
@@ -177,11 +165,12 @@ class ProductRepository(
         return Product(
             id = item.id,
             name = item.name,
-            description = item.description ?: "",
+            description = item.description,
             price = item.price,
-            imageUrl = if (item.image != null) "$baseUrl${item.image}" else "",
+            // 🔥 FIX ERROR: Tambahkan .toString()
+            imageUrl = item.image?.toString() ?: "",
             categoryId = item.category.id,
-            categoryName = item.category.name ?: "",
+            categoryName = item.category.name,
             tokos = item.tokos.map { it.name },
             tokoIds = item.tokos.map { it.id }
         )
@@ -196,7 +185,6 @@ class ProductRepository(
 
     suspend fun updateProductTokoRelation(token: String, productId: Int, tokoId: Int, isAdding: Boolean) {
         val product = getProductById(token, productId)
-
         val currentTokoIds = product.tokoIds.toMutableList()
 
         if (isAdding) {

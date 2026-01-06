@@ -13,9 +13,11 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import coil.compose.AsyncImage // Pastikan import ini ada
 import com.jeruk.alp_frontend.ui.model.Toko
 
 @OptIn(ExperimentalMaterial3Api::class)
@@ -36,24 +38,36 @@ fun TokoCardView(
             modifier = Modifier.padding(16.dp),
             verticalAlignment = Alignment.CenterVertically
         ) {
-            // Icon Box
+            // --- BAGIAN GAMBAR ---
             Box(
                 modifier = Modifier
                     .size(56.dp)
                     .clip(RoundedCornerShape(14.dp))
-                    .background(Color(0xFFE8FDF5)),
+                    .background(Color(0xFFE8FDF5)), // Background default kalau loading/transparan
                 contentAlignment = Alignment.Center
             ) {
-                Icon(
-                    imageVector = Icons.Default.Storefront,
-                    contentDescription = null,
-                    tint = Color(0xFF10B981),
-                    modifier = Modifier.size(28.dp)
-                )
+                // LOGIKA: Jika URL Gambar Ada -> Tampilkan Gambar
+                if (toko.imageUrl.isNotEmpty()) {
+                    AsyncImage(
+                        model = toko.imageUrl,
+                        contentDescription = "Foto Toko ${toko.name}",
+                        contentScale = ContentScale.Crop, // Supaya gambar penuh kotak (tidak gepeng)
+                        modifier = Modifier.fillMaxSize()
+                    )
+                } else {
+                    // LOGIKA: Jika Tidak Ada -> Tampilkan Icon Default
+                    Icon(
+                        imageVector = Icons.Default.Storefront,
+                        contentDescription = null,
+                        tint = Color(0xFF10B981),
+                        modifier = Modifier.size(28.dp)
+                    )
+                }
             }
 
             Spacer(modifier = Modifier.width(16.dp))
 
+            // --- BAGIAN TEKS ---
             Column(modifier = Modifier.weight(1f)) {
                 Text(
                     text = toko.name,
