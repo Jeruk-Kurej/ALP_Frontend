@@ -325,15 +325,27 @@ fun AppRoute() {
             }
 
             // --- ADMIN MODE ---
-            composable(AppView.Analysis.name) { AnalysisPageView(navController) }
+            composable(AppView.Analysis.name) {
+                AnalysisPageView(
+                    navController,
+                    token = userState.token
+                )
+            }
+
+            // --- FIX ERROR: Pass Token ke AnalysisDetailView ---
+            composable(AppView.AnalysisDetail.name) {
+                AnalysisDetailView(
+                    navController = navController,
+                    token = userState.token // <-- INI YANG DITAMBAHKAN
+                )
+            }
+
             composable(AppView.AdminToko.name) {
                 TokoAdminView(
                     navController = navController,
                     authViewModel = authViewModel
                 )
             }
-            composable(AppView.AnalysisDetail.name) { AnalysisDetailView(navController) }
-            composable(AppView.AdminToko.name) { TokoAdminView(navController = navController, authViewModel = authViewModel) }
 
             composable(AppView.CreateToko.name) {
                 CreateTokoView(

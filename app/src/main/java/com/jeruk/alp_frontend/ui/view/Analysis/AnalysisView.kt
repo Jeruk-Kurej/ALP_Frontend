@@ -9,7 +9,7 @@ import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.TrendingUp
 import androidx.compose.material.icons.filled.*
 import androidx.compose.material3.*
-import androidx.compose.runtime.Composable
+import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
@@ -19,11 +19,33 @@ import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import androidx.lifecycle.viewmodel.compose.viewModel
 import androidx.navigation.NavController
 import com.jeruk.alp_frontend.ui.route.AppView
+import com.jeruk.alp_frontend.ui.viewmodel.AnalysisViewModel
+import java.text.NumberFormat
+import java.util.Locale
 
 @Composable
-fun AnalysisPageView(navController: NavController) {
+fun AnalysisPageView(
+    navController: NavController,
+    token: String, // PERLU TOKEN UNTUK FETCH DATA
+    viewModel: AnalysisViewModel = viewModel()
+) {
+    // Ambil state dashboard dari ViewModel
+    val dashboardState by viewModel.dashboardState.collectAsState()
+
+    // Panggil fungsi load saat halaman dibuka
+    LaunchedEffect(Unit) {
+        viewModel.loadDashboardData(token)
+    }
+
+    // Fungsi helper format Rupiah
+    fun formatRupiah(amount: Double): String {
+        val format = NumberFormat.getCurrencyInstance(Locale("in", "ID"))
+        return format.format(amount).replace("Rp", "Rp ").substringBefore(",00")
+    }
+
     Column(
         modifier = Modifier
             .fillMaxSize()
@@ -31,14 +53,44 @@ fun AnalysisPageView(navController: NavController) {
             .verticalScroll(rememberScrollState())
     ) {
         Column(modifier = Modifier.padding(16.dp), verticalArrangement = Arrangement.spacedBy(16.dp)) {
+
             // --- GRID RINGKASAN (4 Kotak) ---
+            // Data diambil dari dashboardState (Real Database)
             Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(12.dp)) {
-                SummaryMiniCard(Modifier.weight(1f), "Total Produk", "6", Icons.Default.Inventory2, Color(0xFFE3F2FD), Color(0xFF2196F3))
-                SummaryMiniCard(Modifier.weight(1f), "Kategori", "3", Icons.Default.LocalOffer, Color(0xFFF3E5F5), Color(0xFF9C27B0))
+                SummaryMiniCard(
+                    modifier = Modifier.weight(1f),
+                    title = "Total Produk",
+                    value = dashboardState.totalProducts.toString(),
+                    icon = Icons.Default.Inventory2,
+                    bgColor = Color(0xFFE3F2FD),
+                    iconColor = Color(0xFF2196F3)
+                )
+                SummaryMiniCard(
+                    modifier = Modifier.weight(1f),
+                    title = "Kategori",
+                    value = dashboardState.totalCategories.toString(),
+                    icon = Icons.Default.LocalOffer,
+                    bgColor = Color(0xFFF3E5F5),
+                    iconColor = Color(0xFF9C27B0)
+                )
             }
             Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(12.dp)) {
-                SummaryMiniCard(Modifier.weight(1f), "Total Toko", "2", Icons.Default.Storefront, Color(0xFFFCE4EC), Color(0xFFE91E63))
-                SummaryMiniCard(Modifier.weight(1f), "Pendapatan", "Rp 0", Icons.AutoMirrored.Filled.TrendingUp, Color(0xFFE8F5E9), Color(0xFF4CAF50))
+                SummaryMiniCard(
+                    modifier = Modifier.weight(1f),
+                    title = "Total Toko",
+                    value = dashboardState.totalTokos.toString(),
+                    icon = Icons.Default.Storefront,
+                    bgColor = Color(0xFFFCE4EC),
+                    iconColor = Color(0xFFE91E63)
+                )
+                SummaryMiniCard(
+                    modifier = Modifier.weight(1f),
+                    title = "Pendapatan",
+                    value = formatRupiah(dashboardState.totalRevenue),
+                    icon = Icons.AutoMirrored.Filled.TrendingUp,
+                    bgColor = Color(0xFFE8F5E9),
+                    iconColor = Color(0xFF4CAF50)
+                )
             }
 
             // --- ANALISIS KESELURUHAN CARD ---
@@ -51,13 +103,29 @@ fun AnalysisPageView(navController: NavController) {
                 Column(modifier = Modifier.padding(20.dp), verticalArrangement = Arrangement.spacedBy(16.dp)) {
                     Text("Analisis Bisnis Keseluruhan", fontWeight = FontWeight.Bold, fontSize = 16.sp)
 
-                    AnalysisItem("Total Transaksi Hari Ini", "Semua pembayaran", "0", Icons.Default.BarChart, Color(0xFFE3F2FD), Color(0xFF2196F3))
-                    AnalysisItem("Pendapatan Hari Ini", "Total pemasukan", "Rp 0", Icons.AutoMirrored.Filled.TrendingUp, Color(0xFFE8F5E9), Color(0xFF4CAF50))
+                    // Menggunakan data 'Hari Ini' (Logic ada di ViewModel)
+                    AnalysisItem(
+                        title = "Total Transaksi Hari Ini",
+                        sub = "Semua pembayaran valid",
+                        value = "${dashboardState.todayOrders} Transaksi",
+                        icon = Icons.Default.BarChart,
+                        bgColor = Color(0xFFE3F2FD),
+                        iconColor = Color(0xFF2196F3)
+                    )
+                    AnalysisItem(
+                        title = "Pendapatan Hari Ini",
+                        sub = "Total pemasukan hari ini",
+                        value = formatRupiah(dashboardState.todayRevenue),
+                        icon = Icons.AutoMirrored.Filled.TrendingUp,
+                        bgColor = Color(0xFFE8F5E9),
+                        iconColor = Color(0xFF4CAF50)
+                    )
 
                     Spacer(modifier = Modifier.height(8.dp))
 
                     Button(
                         onClick = {
+                            // Navigasi ke Detail (Pastikan Route sudah benar)
                             navController.navigate(AppView.AnalysisDetail.name)
                         },
                         modifier = Modifier.fillMaxWidth().height(52.dp),
@@ -90,7 +158,7 @@ fun SummaryMiniCard(modifier: Modifier, title: String, value: String, icon: Imag
                 Icon(icon, null, tint = iconColor, modifier = Modifier.size(20.dp))
             }
             Text(title, color = Color.Gray, fontSize = 12.sp)
-            Text(value, fontWeight = FontWeight.Bold, fontSize = 20.sp)
+            Text(value, fontWeight = FontWeight.Bold, fontSize = 18.sp) // Adjusted font size slightly
         }
     }
 }
@@ -106,6 +174,11 @@ fun AnalysisItem(title: String, sub: String, value: String, icon: ImageVector, b
             Text(title, fontWeight = FontWeight.SemiBold, fontSize = 14.sp)
             Text(sub, color = Color.Gray, fontSize = 11.sp)
         }
-        Text(value, fontWeight = FontWeight.Bold, fontSize = 16.sp, color = if(value.contains("Rp")) Color(0xFF10B981) else Color.Black)
+        Text(
+            value,
+            fontWeight = FontWeight.Bold,
+            fontSize = 15.sp,
+            color = if(value.contains("Rp")) Color(0xFF10B981) else Color.Black
+        )
     }
 }

@@ -12,17 +12,35 @@ import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
-import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.navigation.NavController
+// Import tambahan untuk ViewModel dan Logic
+import androidx.lifecycle.viewmodel.compose.viewModel
+import com.jeruk.alp_frontend.ui.viewmodel.AnalysisViewModel
+import com.jeruk.alp_frontend.ui.viewmodel.TopProductResult
+import java.text.NumberFormat
+import java.util.Locale
 
 @Composable
-fun AnalysisDetailView(navController: NavController) {
+fun AnalysisDetailView(
+    navController: NavController,
+    token: String, // WAJIB: Token dikirim dari Navigation/AppRoute
+    viewModel: AnalysisViewModel = viewModel() // Inject ViewModel
+) {
     var selectedPeriod by remember { mutableStateOf("Minggu") }
+
+    // Ambil Data dari ViewModel
+    val topProducts by viewModel.topProducts.collectAsState()
+    val isLoading by viewModel.isLoading.collectAsState()
+
+    // Trigger perhitungan saat halaman dibuka
+    LaunchedEffect(Unit) {
+        viewModel.calculateTopProducts(token)
+    }
 
     Column(
         modifier = Modifier
@@ -42,7 +60,7 @@ fun AnalysisDetailView(navController: NavController) {
                 modifier = Modifier.padding(vertical = 8.dp)
             )
 
-            // Summary Cards
+            // Summary Cards (Masih Static dulu, fokus ke Top Produk)
             Row(
                 modifier = Modifier.fillMaxWidth(),
                 horizontalArrangement = Arrangement.spacedBy(12.dp)
@@ -65,7 +83,7 @@ fun AnalysisDetailView(navController: NavController) {
                 )
             }
 
-            // Produk Terlaris Section
+            // === BAGIAN PRODUK TERLARIS (SUDAH DINAMIS) ===
             Card(
                 modifier = Modifier.fillMaxWidth(),
                 shape = RoundedCornerShape(20.dp),
@@ -88,12 +106,41 @@ fun AnalysisDetailView(navController: NavController) {
                         )
                     }
                     Spacer(modifier = Modifier.height(16.dp))
-                    Text(
-                        "Belum ada transaksi",
-                        color = Color(0xFF9CA3AF),
-                        fontSize = 14.sp,
-                        modifier = Modifier.align(Alignment.CenterHorizontally)
-                    )
+
+                    if (isLoading) {
+                        Box(
+                            modifier = Modifier.fillMaxWidth(),
+                            contentAlignment = Alignment.Center
+                        ) {
+                            CircularProgressIndicator(
+                                modifier = Modifier.size(24.dp),
+                                color = Color(0xFF9333EA)
+                            )
+                        }
+                    } else if (topProducts.isEmpty()) {
+                        Text(
+                            "Belum ada transaksi",
+                            color = Color(0xFF9CA3AF),
+                            fontSize = 14.sp,
+                            modifier = Modifier.align(Alignment.CenterHorizontally)
+                        )
+                    } else {
+                        // Loop data Top 5
+                        topProducts.forEachIndexed { index, item ->
+                            TopProductItem(
+                                rank = index + 1,
+                                data = item
+                            )
+                            // Divider antar item
+                            if (index < topProducts.size - 1) {
+                                Divider(
+                                    color = Color(0xFFF3F4F6),
+                                    thickness = 1.dp,
+                                    modifier = Modifier.padding(vertical = 12.dp)
+                                )
+                            }
+                        }
+                    }
                 }
             }
 
@@ -173,7 +220,7 @@ fun AnalysisDetailView(navController: NavController) {
 
                     Spacer(modifier = Modifier.height(16.dp))
 
-                    // Chart Placeholder - showing sample data
+                    // Chart Placeholder
                     Box(
                         modifier = Modifier
                             .fillMaxWidth()
@@ -238,7 +285,7 @@ fun AnalysisDetailView(navController: NavController) {
                 }
             }
 
-            // Filter Toko & Hari Ini/Bulan Ini Section
+            // Filter Toko Section
             Card(
                 modifier = Modifier.fillMaxWidth(),
                 shape = RoundedCornerShape(20.dp),
@@ -359,6 +406,69 @@ fun AnalysisDetailView(navController: NavController) {
         }
     }
 }
+
+// === WIDGET KHUSUS TOP PRODUCT ===
+@Composable
+fun TopProductItem(rank: Int, data: TopProductResult) {
+    // Format Rupiah
+    val formatRp = NumberFormat.getCurrencyInstance(Locale("in", "ID"))
+    val revenueString = formatRp.format(data.totalRevenue).replace("Rp", "Rp ").substringBefore(",00")
+
+    Row(
+        modifier = Modifier.fillMaxWidth(),
+        verticalAlignment = Alignment.CenterVertically,
+        horizontalArrangement = Arrangement.SpaceBetween
+    ) {
+        Row(verticalAlignment = Alignment.CenterVertically, modifier = Modifier.weight(1f)) {
+            // Badge Ranking
+            val badgeColor = when (rank) {
+                1 -> Color(0xFFFEF3C7) // Emas pudar
+                2 -> Color(0xFFF3F4F6) // Abu pudar
+                3 -> Color(0xFFFFF7ED) // Orange pudar
+                else -> Color.White
+            }
+            val textColor = when (rank) {
+                1 -> Color(0xFFD97706)
+                else -> Color.Gray
+            }
+
+            Box(
+                modifier = Modifier
+                    .size(28.dp)
+                    .clip(RoundedCornerShape(8.dp))
+                    .background(badgeColor),
+                contentAlignment = Alignment.Center
+            ) {
+                Text("#$rank", fontSize = 12.sp, fontWeight = FontWeight.Bold, color = textColor)
+            }
+
+            Spacer(modifier = Modifier.width(12.dp))
+
+            Column {
+                Text(
+                    text = data.name,
+                    fontWeight = FontWeight.SemiBold,
+                    fontSize = 14.sp,
+                    color = Color(0xFF1F2937)
+                )
+                Text(
+                    text = "${data.totalSold} Terjual",
+                    fontSize = 12.sp,
+                    color = Color(0xFF6B7280)
+                )
+            }
+        }
+
+        Text(
+            text = revenueString,
+            fontWeight = FontWeight.Bold,
+            fontSize = 14.sp,
+            color = Color(0xFF10B981)
+        )
+    }
+}
+
+// === WIDGET LAINNYA (TIDAK BERUBAH) ===
 
 @Composable
 fun TotalCard(
@@ -492,6 +602,5 @@ fun DaySummaryCard(
             Text(title, fontSize = 12.sp, color = Color(0xFF6B7280))
             Text(value, fontWeight = FontWeight.Bold, fontSize = 16.sp)
         }
-
     }
 }
