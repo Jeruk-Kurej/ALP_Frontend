@@ -36,15 +36,6 @@ fun SettingAdminView(
             modifier = Modifier.padding(16.dp),
             verticalArrangement = Arrangement.spacedBy(16.dp)
         ) {
-            // Card Bahasa & Mata Uang (Gunakan komponen yang sudah kita buat sebelumnya)
-            Text(
-                "Pengaturan Admin",
-                fontWeight = FontWeight.Bold,
-                fontSize = 20.sp,
-                modifier = Modifier.padding(bottom = 8.dp)
-            )
-
-            // Menu Khusus Admin: Keluar dari Mode Admin
             ActionItem(
                 title = "Keluar dari Mode Admin",
                 sub = "Kembali ke tampilan Waiter",
