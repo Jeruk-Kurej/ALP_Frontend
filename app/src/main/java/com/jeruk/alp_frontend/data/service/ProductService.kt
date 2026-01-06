@@ -30,9 +30,12 @@ interface ProductService {
         @Part("name") name: RequestBody,
         @Part("description") description: RequestBody,
         @Part("price") price: RequestBody,
-        @Part("category_id") categoryId: RequestBody,
-        @Part image: MultipartBody.Part,
-        @Part("toko_ids") tokoIds: RequestBody? = null  // Optional - omit if null
+
+        // 👇 PERBAIKAN: Ganti "category_id" jadi "categoryId"
+        @Part("categoryId") categoryId: RequestBody,
+
+        @Part("toko_ids") tokoIds: RequestBody?, // (Lihat catatan di bawah soal ini)
+        @Part image: MultipartBody.Part?
     ): Response<CreateProduct>
 
     @Multipart

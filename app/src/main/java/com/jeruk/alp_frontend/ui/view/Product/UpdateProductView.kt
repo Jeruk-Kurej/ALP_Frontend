@@ -46,9 +46,12 @@ fun UpdateProductView(
 
     // State from ViewModels
     val selectedProduct by productViewModel.selectedProduct.collectAsState()
-    val productState by productViewModel.productState.collectAsState()
     val isLoading by productViewModel.isLoading.collectAsState()
     val categories by categoryViewModel.categories.collectAsState()
+
+    // 👇 UPDATE: Pakai variable baru (isSuccess & errorMessage)
+    val isSuccess by productViewModel.isSuccess.collectAsState()
+    val errorMessage by productViewModel.errorMessage.collectAsState()
 
     // Form State
     var productName by remember { mutableStateOf("") }
@@ -62,6 +65,9 @@ fun UpdateProductView(
 
     // Load product data
     LaunchedEffect(Unit) {
+        // Bersihkan pesan error/sukses sebelumnya
+        productViewModel.clearMessages()
+
         android.util.Log.d("UpdateProductView", "Loading product ID: $productId with token")
         productViewModel.getProductById(token, productId)
         categoryViewModel.getAllCategories(token)
@@ -74,7 +80,7 @@ fun UpdateProductView(
             productDescription = product.description
             productPrice = product.price.toString()
             selectedCategoryId = product.categoryId
-            selectedCategoryName = product.categoryName
+            selectedCategoryName = product.categoryName // Pastikan field ini ada di Model Product kamu
         }
     }
 
@@ -84,21 +90,28 @@ fun UpdateProductView(
     ) { uri: Uri? ->
         uri?.let {
             selectedImageUri = it
-            // Convert Uri to File
-            val inputStream = context.contentResolver.openInputStream(it)
-            val file = File(context.cacheDir, "temp_image_${System.currentTimeMillis()}.jpg")
-            val outputStream = FileOutputStream(file)
-            inputStream?.copyTo(outputStream)
-            imageFile = file
-            inputStream?.close()
-            outputStream.close()
+            try {
+                // Convert Uri to File
+                val inputStream = context.contentResolver.openInputStream(it)
+                val file = File(context.cacheDir, "temp_image_${System.currentTimeMillis()}.jpg")
+                val outputStream = FileOutputStream(file)
+                inputStream?.copyTo(outputStream)
+                imageFile = file
+                inputStream?.close()
+                outputStream.close()
+            } catch (e: Exception) {
+                // Handle error properly in real app
+                e.printStackTrace()
+            }
         }
     }
 
-    // Navigate back on success
-    LaunchedEffect(productState.isSuccess) {
-        if (productState.isSuccess) {
+    // 👇 UPDATE: Logic sukses pakai variable isSuccess
+    LaunchedEffect(isSuccess) {
+        if (isSuccess) {
             onSuccess()
+            // Reset pesan agar tidak trigger lagi
+            productViewModel.clearMessages()
         }
     }
 
@@ -217,7 +230,7 @@ fun UpdateProductView(
                     trailingIcon = { ExposedDropdownMenuDefaults.TrailingIcon(expanded = categoryExpanded) },
                     modifier = Modifier
                         .fillMaxWidth()
-                        .menuAnchor(),
+                        .menuAnchor(MenuAnchorType.PrimaryNotEditable), // Update API Material3 terbaru
                     shape = RoundedCornerShape(12.dp),
                     colors = OutlinedTextFieldDefaults.colors(
                         focusedBorderColor = Color(0xFF3B82F6),
@@ -293,16 +306,15 @@ fun UpdateProductView(
 
             Spacer(modifier = Modifier.height(24.dp))
 
-            // Error Message
-            val currentError = productState.errorMessage
-            if (currentError != null) {
+            // 👇 UPDATE: Tampilkan Error Card
+            if (errorMessage != null) {
                 Card(
                     modifier = Modifier.fillMaxWidth(),
                     colors = CardDefaults.cardColors(containerColor = Color(0xFFFEE2E2)),
                     shape = RoundedCornerShape(12.dp)
                 ) {
                     Text(
-                        text = currentError,
+                        text = errorMessage ?: "Terjadi kesalahan",
                         color = Color(0xFFDC2626),
                         fontSize = 14.sp,
                         modifier = Modifier.padding(12.dp)
@@ -317,14 +329,6 @@ fun UpdateProductView(
                     val priceValue = productPrice.toIntOrNull() ?: 0
                     selectedCategoryId?.let { catId ->
                         android.util.Log.d("UpdateProductView", "Updating product: id=$productId")
-                        android.util.Log.d(
-                            "UpdateProductView",
-                            "Name: $productName, Price: $priceValue, CategoryId: $catId"
-                        )
-                        android.util.Log.d(
-                            "UpdateProductView",
-                            "New image selected: ${imageFile != null}"
-                        )
 
                         productViewModel.updateProduct(
                             token = token,
@@ -333,8 +337,8 @@ fun UpdateProductView(
                             description = productDescription,
                             price = priceValue,
                             categoryId = catId,
-                            tokoIds = "", // Empty for now, toko assignment handled elsewhere
-                            imageFile = imageFile // Only send if user selected a new image
+                            tokoIds = "",
+                            imageFile = imageFile // Kirim file jika ada
                         )
                     }
                 },

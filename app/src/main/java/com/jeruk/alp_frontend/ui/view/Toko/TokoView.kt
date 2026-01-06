@@ -22,6 +22,7 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.lifecycle.viewmodel.compose.viewModel
 import androidx.navigation.NavController
+import com.jeruk.alp_frontend.ui.route.AppView
 import com.jeruk.alp_frontend.ui.viewmodel.TokoViewModel
 
 @Composable
@@ -71,10 +72,8 @@ fun TokoView(
                 verticalArrangement = Arrangement.spacedBy(16.dp) // Spasi lega ala HIG
             ) {
                 items(tokos) { item ->
-                    // Panggil file yang baru kita pisah tadi!
                     TokoCardView(toko = item) {
-                        // Navigasi ke produk toko ini
-                        navController.navigate("ProductMenu/${item.id}")
+                        navController.navigate("${AppView.ProductMenu.name}/${item.id}/${item.name}/${item.address}")
                     }
                 }
                 item { Spacer(modifier = Modifier.height(24.dp)) }

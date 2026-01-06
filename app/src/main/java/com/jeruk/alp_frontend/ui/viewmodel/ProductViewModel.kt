@@ -7,75 +7,79 @@ import com.jeruk.alp_frontend.data.container.AppContainer
 import com.jeruk.alp_frontend.ui.model.Product
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
+import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.launch
 import java.io.File
 
-data class ProductState(
-    val isSuccess: Boolean = false,
-    val isError: Boolean = false,
-    val errorMessage: String? = null
-)
-
 class ProductViewModel : ViewModel() {
 
+    // 1. Repository
     private val repository = AppContainer.productRepository
 
+    // 2. Data List & Detail
     private val _products = MutableStateFlow<List<Product>>(emptyList())
-    val products: StateFlow<List<Product>> = _products
+    val products: StateFlow<List<Product>> = _products.asStateFlow()
 
     private val _selectedProduct = MutableStateFlow<Product?>(null)
-    val selectedProduct: StateFlow<Product?> = _selectedProduct
+    val selectedProduct: StateFlow<Product?> = _selectedProduct.asStateFlow()
+
+    // 3. State UI (Loading, Success, Error)
+    // Kita pakai variabel biasa saja (Normal Way), tidak perlu ProductState class lagi.
 
     private val _isLoading = MutableStateFlow(false)
-    val isLoading: StateFlow<Boolean> = _isLoading
+    val isLoading: StateFlow<Boolean> = _isLoading.asStateFlow()
 
-    private val _productState = MutableStateFlow(ProductState())
-    val productState: StateFlow<ProductState> = _productState
+    private val _isSuccess = MutableStateFlow(false)
+    val isSuccess: StateFlow<Boolean> = _isSuccess.asStateFlow()
 
     private val _errorMessage = MutableStateFlow<String?>(null)
-    val errorMessage: StateFlow<String?> = _errorMessage
+    val errorMessage: StateFlow<String?> = _errorMessage.asStateFlow()
 
-    // successMessage is legacy, prefer productState. We keep it for now to avoid breaking other parts.
     private val _successMessage = MutableStateFlow<String?>(null)
-    val successMessage: StateFlow<String?> = _successMessage
+    val successMessage: StateFlow<String?> = _successMessage.asStateFlow()
 
+    // -----------------------------------------------------------
+    // FUNCTION: GET ALL PRODUCTS
+    // -----------------------------------------------------------
     fun getAllProducts(token: String) {
         viewModelScope.launch {
             _isLoading.value = true
-            _errorMessage.value = null
+            _errorMessage.value = null // Reset error
             try {
-                Log.d("ProductViewModel", "Fetching products with token")
+                Log.d("ProductViewModel", "Fetching all products...")
                 val result = repository.getAllProducts(token)
                 _products.value = result
-                Log.d("ProductViewModel", "Products loaded: ${result.size} items")
             } catch (e: Exception) {
-                _errorMessage.value = e.message
-                Log.e("ProductViewModel", "Error loading products: ${e.message}", e)
+                _errorMessage.value = "Gagal memuat produk: ${e.message}"
+                Log.e("ProductViewModel", "Error fetch products", e)
             } finally {
                 _isLoading.value = false
             }
         }
     }
 
+    // -----------------------------------------------------------
+    // FUNCTION: GET BY ID
+    // -----------------------------------------------------------
     fun getProductById(token: String, productId: Int) {
         viewModelScope.launch {
             _isLoading.value = true
             _errorMessage.value = null
-            _selectedProduct.value = null // Clear previous before loading
+            _selectedProduct.value = null
             try {
-                Log.d("ProductViewModel", "Getting product by ID: $productId")
                 val result = repository.getProductById(token, productId)
                 _selectedProduct.value = result
-                Log.d("ProductViewModel", "Product loaded: ${result.name}")
             } catch (e: Exception) {
-                _errorMessage.value = e.message
-                Log.e("ProductViewModel", "Error getting product: ${e.message}", e)
+                _errorMessage.value = "Gagal memuat detail: ${e.message}"
             } finally {
                 _isLoading.value = false
             }
         }
     }
 
+    // -----------------------------------------------------------
+    // FUNCTION: CREATE PRODUCT
+    // -----------------------------------------------------------
     fun createProduct(
         token: String,
         name: String,
@@ -87,47 +91,40 @@ class ProductViewModel : ViewModel() {
     ) {
         viewModelScope.launch {
             _isLoading.value = true
-            _productState.value = ProductState()
+            _isSuccess.value = false
+            _errorMessage.value = null
+
             try {
-                Log.d(
-                    "ProductViewModel",
-                    "Creating product: name=$name, hasImage=${imageFile != null}"
+                Log.d("ProductVM", "Mengirim data: Name=$name, Price=$price, Cat=$categoryId, Toko=$tokoIds")
+
+                repository.createProduct(
+                    token, name, description, price, categoryId, tokoIds, imageFile
                 )
 
-                val result = repository.createProduct(
-                    token,
-                    name,
-                    description,
-                    price,
-                    categoryId,
-                    tokoIds,
-                    imageFile
-                )
+                _successMessage.value = "Produk berhasil dibuat"
+                _isSuccess.value = true
+                getAllProducts(token)
 
-                Log.d("ProductViewModel", "Product created successfully: ${result.name}")
-
-                _successMessage.value = "Product created successfully"
-                _productState.value = ProductState(isSuccess = true)
-                getAllProducts(token) // Refresh the list
             } catch (e: retrofit2.HttpException) {
+                // Tangkap error dari Server (400, 401, 500)
                 val errorBody = e.response()?.errorBody()?.string()
-                val errorMsg = "HTTP ${e.code()}: ${errorBody ?: e.message()}"
-                Log.e("ProductViewModel", "HTTP Error creating product: $errorMsg", e)
-                _productState.value = ProductState(isError = true, errorMessage = errorMsg)
-            } catch (e: java.io.IOException) {
-                val errorMsg = "Network error: ${e.message}"
-                Log.e("ProductViewModel", "Network error creating product", e)
-                _productState.value = ProductState(isError = true, errorMessage = errorMsg)
+                Log.e("ProductVM", "Server Error Body: $errorBody")
+                _errorMessage.value = "Server menolak: $errorBody"
+                _isSuccess.value = false
             } catch (e: Exception) {
-                val errorMsg = "Error: ${e.message}"
-                Log.e("ProductViewModel", "Error creating product", e)
-                _productState.value = ProductState(isError = true, errorMessage = errorMsg)
+                // Error koneksi atau kodingan
+                Log.e("ProductVM", "Error Local: ${e.message}", e)
+                _errorMessage.value = "Gagal: ${e.message}"
+                _isSuccess.value = false
             } finally {
                 _isLoading.value = false
             }
         }
     }
 
+    // -----------------------------------------------------------
+    // FUNCTION: UPDATE PRODUCT
+    // -----------------------------------------------------------
     fun updateProduct(
         token: String,
         productId: Int,
@@ -140,42 +137,30 @@ class ProductViewModel : ViewModel() {
     ) {
         viewModelScope.launch {
             _isLoading.value = true
-            _productState.value = ProductState() // Reset state
+            _isSuccess.value = false
+            _errorMessage.value = null
+
             try {
-                Log.d("ProductViewModel", "Updating product id=$productId with name=$name")
                 val result = repository.updateProduct(
-                    token,
-                    productId,
-                    name,
-                    description,
-                    price,
-                    categoryId,
-                    tokoIds,
-                    imageFile
+                    token, productId, name, description, price, categoryId, tokoIds, imageFile
                 )
                 _selectedProduct.value = result
-                _productState.value = ProductState(isSuccess = true) // Set success state
-                getAllProducts(token) // Refresh list
-                Log.d("ProductViewModel", "Product updated successfully: ${result.name}")
-            } catch (e: retrofit2.HttpException) {
-                val errorBody = e.response()?.errorBody()?.string()
-                val errorMsg = "HTTP ${e.code()}: ${errorBody ?: e.message()}"
-                Log.e("ProductViewModel", "HTTP error updating product: $errorMsg", e)
-                _productState.value = ProductState(isError = true, errorMessage = errorMsg)
-            } catch (e: java.io.IOException) {
-                val errorMsg = "Network error: ${e.message}"
-                Log.e("ProductViewModel", "Network error updating product: $errorMsg", e)
-                _productState.value = ProductState(isError = true, errorMessage = errorMsg)
+                _successMessage.value = "Produk berhasil diperbarui"
+                _isSuccess.value = true
+
+                getAllProducts(token)
             } catch (e: Exception) {
-                val errorMsg = "General error: ${e.message}"
-                Log.e("ProductViewModel", "Error updating product: $errorMsg", e)
-                _productState.value = ProductState(isError = true, errorMessage = errorMsg)
+                _errorMessage.value = "Gagal update produk: ${e.message}"
+                _isSuccess.value = false
             } finally {
                 _isLoading.value = false
             }
         }
     }
 
+    // -----------------------------------------------------------
+    // FUNCTION: DELETE PRODUCT
+    // -----------------------------------------------------------
     fun deleteProduct(token: String, productId: Int) {
         viewModelScope.launch {
             _isLoading.value = true
@@ -183,18 +168,27 @@ class ProductViewModel : ViewModel() {
             try {
                 val message = repository.deleteProduct(token, productId)
                 _successMessage.value = message
-                getAllProducts(token) // Refresh the list with token
+
+                // Hapus manual dari list lokal biar cepat update UI
+                val currentList = _products.value.toMutableList()
+                currentList.removeAll { it.id == productId }
+                _products.value = currentList
+
             } catch (e: Exception) {
-                _errorMessage.value = e.message
+                _errorMessage.value = "Gagal menghapus: ${e.message}"
             } finally {
                 _isLoading.value = false
             }
         }
     }
 
+    // -----------------------------------------------------------
+    // CLEANUP / RESET STATE
+    // -----------------------------------------------------------
     fun clearMessages() {
         _errorMessage.value = null
         _successMessage.value = null
-        _productState.value = ProductState() // Also reset the product state
+        _isSuccess.value = false
+        _selectedProduct.value = null
     }
 }
