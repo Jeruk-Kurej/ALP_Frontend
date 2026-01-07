@@ -57,22 +57,6 @@ fun SettingView(
                 .verticalScroll(rememberScrollState()),
             verticalArrangement = Arrangement.spacedBy(16.dp)
         ) {
-            // --- KARTU BAHASA ---
-            SettingCard(
-                title = "Bahasa",
-                sub = "Pilih bahasa untuk aplikasi",
-                icon = Icons.Outlined.Language,
-                iconBg = Color(0xFFE8EAF6),
-                iconTint = Color(0xFF3F51B5)
-            ) {
-                LanguageOption(
-                    "Bahasa Indonesia",
-                    selectedLanguage == "Indonesia"
-                ) { selectedLanguage = "Indonesia" }
-                LanguageOption("English", selectedLanguage == "English") {
-                    selectedLanguage = "English"
-                }
-            }
 
             // --- KARTU MATA UANG ---
             SettingCard(
